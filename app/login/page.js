@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import styles from '../style/login.module.css';
+import { ToastContainer, toast } from 'react-toastify';  // Import react-toastify
+import 'react-toastify/dist/ReactToastify.css';  // Import CSS untuk toastify
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -51,13 +53,19 @@ const Login = () => {
       } else if (roleId === 'admin') {
         router.push('/admin');
       }
+
+      toast.success("Login successful!");
+
     } catch (error) {
       console.error('Error submitting login:', error.response?.data || error.message);
+
+      toast.error("Login failed! Please check your credentials.");
     }
   };
 
   return (
     <div className={styles.container}>
+      <ToastContainer />
       <div className={styles.imageSection}>
         <Image
           src="/images/login-illustration.svg"

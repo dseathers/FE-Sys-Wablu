@@ -50,7 +50,7 @@ const Qa = () => {
     if (activePage === "createissue" && loginData) {
       setSelectedComponent(<CreateIssue loginData={loginData} />);
     } else if (activePage === "listissue") {
-      setSelectedComponent(<ListIssue />);
+      setSelectedComponent(<ListIssue loginData={loginData}/>);
     } else if (activePage === "task") {
       setSelectedComponent(
         <div className="p-6 bg-white rounded-xl shadow-sm">
