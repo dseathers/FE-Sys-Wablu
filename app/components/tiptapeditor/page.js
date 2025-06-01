@@ -38,6 +38,7 @@ export default function TiptapEditor({ content, onChange }) {
     <button
       onClick={onClick}
       title={title}
+      type="button"
       className={`p-2 rounded-md border ${isActive ? 'bg-blue-500 text-white' : 'bg-white text-black'}`}
     >
       <Icon size={18} />
@@ -54,10 +55,25 @@ export default function TiptapEditor({ content, onChange }) {
           const url = prompt('Masukkan URL link')
           if (url) editor.chain().focus().setLink({ href: url }).run()
         }, LinkIcon, 'Link')}
+
         {iconBtn(false, () => {
-          const url = prompt('Masukkan URL gambar')
-          if (url) editor.chain().focus().setImage({ src: url }).run()
-        }, ImageIcon, 'Gambar')}
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = 'image/*'
+          input.onchange = async () => {
+            const file = input.files[0]
+            if (file) {
+              const reader = new FileReader()
+              reader.onload = () => {
+                const base64 = reader.result
+                editor.chain().focus().setImage({ src: base64 }).run()
+              }
+              reader.readAsDataURL(file)
+            }
+          }
+          input.click()
+        }, ImageIcon, 'Upload Gambar')}
+
         {iconBtn(editor.isActive({ textAlign: 'left' }), () => editor.chain().focus().setTextAlign('left').run(), AlignLeft, 'Left')}
         {iconBtn(editor.isActive({ textAlign: 'center' }), () => editor.chain().focus().setTextAlign('center').run(), AlignCenter, 'Center')}
         {iconBtn(editor.isActive({ textAlign: 'right' }), () => editor.chain().focus().setTextAlign('right').run(), AlignRight, 'Right')}
