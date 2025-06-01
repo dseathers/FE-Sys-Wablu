@@ -108,99 +108,127 @@ const ListIssue = ({ loginData }) => {
         </table>
 
         {/* Popup View */}
-<Popup open={popupOpen} onClose={() => setPopupOpen(false)} modal nested>
-  <div className="p-6 bg-white rounded shadow max-w-3xl w-full">
-    <h2 className="text-2xl font-semibold mb-6">View Issue</h2>
+<Popup 
+  open={popupOpen} 
+  onClose={() => setPopupOpen(false)} 
+  modal 
+  nested
+  overlayStyle={{ background: 'rgba(0, 0, 0, 0.5)' }}
+  contentStyle={{
+    borderRadius: '12px',
+    padding: '0',
+    border: 'none',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+    maxWidth: '800px',
+    width: '90%',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    animation: 'fadeIn 0.3s ease-out',
+    scrollbarWidth: 'none', // Firefox
+    msOverflowStyle: 'none' // IE 10+
+  }}
+>
+  <div className="bg-white rounded-lg" style={{ height: '100%', overflow: 'auto' }}>
+    <style>{`
+      .popup-content::-webkit-scrollbar { display: none; }
+    `}</style>
+    <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 rounded-t-lg sticky top-0 z-10">
+      <h2 className="text-2xl font-bold text-white">Issue Details</h2>
+    </div>
 
-    {popupData && popupData.length > 0 ? (
-      <form className="space-y-4">
-        {/* Row: Requestor & Acceptor */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium">Requestor</label>
+    <div className="p-4">
+      {popupData && popupData.length > 0 ? (
+        <form className="space-y-4">
+          {/* Row: Requestor & Acceptor */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Requestor</label>
+              <input
+                type="text"
+                value={popupData[0].requestor || '-'}
+                disabled
+                className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Assign To (Developer)</label>
+              <input
+                type="text"
+                value={popupData[0].acceptor || '-'}
+                disabled
+                className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Row: Status & Priority */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+              <input
+                type="text"
+                value={popupData[0].status || '-'}
+                disabled
+                className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Priority</label>
+              <input
+                type="text"
+                value={popupData[0].priority || '-'}
+                disabled
+                className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Title */}
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Title</label>
             <input
               type="text"
-              value={popupData[0].requestor || '-'}
+              value={popupData[0].title || '-'}
               disabled
-              className="w-full mt-1 border rounded px-3 py-2 bg-gray-100"
+              className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium">Assign To (Developer)</label>
-            <input
-              type="text"
-              value={popupData[0].acceptor || '-'}
-              disabled
-              className="w-full mt-1 border rounded px-3 py-2 bg-gray-100"
+
+          {/* Content */}
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Content</label>
+            <div
+              className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 min-h-[100px] text-gray-700"
+              dangerouslySetInnerHTML={{ __html: popupData[0].content || '-' }}
             />
           </div>
-        </div>
 
-        {/* Row: Status & Priority */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium">Status</label>
-            <input
-              type="text"
-              value={popupData[0].status || '-'}
+          {/* Remarks */}
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Remarks</label>
+            <textarea
+              value={popupData[0].remarks || '-'}
               disabled
-              className="w-full mt-1 border rounded px-3 py-2 bg-gray-100"
+              className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium">Priority</label>
-            <input
-              type="text"
-              value={popupData[0].priority || '-'}
-              disabled
-              className="w-full mt-1 border rounded px-3 py-2 bg-gray-100"
-            />
+
+          <div className="flex justify-end mt-4">
+            <button
+              type="button"
+              onClick={() => setPopupOpen(false)}
+              className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
+            >
+              Close
+            </button>
           </div>
+        </form>
+      ) : (
+        <div className="text-center py-6">
+          <p className="text-red-500 text-lg font-medium">Data tidak tersedia.</p>
         </div>
-
-        {/* Title */}
-        <div>
-          <label className="block text-sm font-medium">Title</label>
-          <input
-            type="text"
-            value={popupData[0].title || '-'}
-            disabled
-            className="w-full mt-1 border rounded px-3 py-2 bg-gray-100"
-          />
-        </div>
-
-        {/* Content */}
-        <div>
-          <label className="block text-sm font-medium">Content</label>
-          <div
-            className="w-full mt-1 border rounded px-3 py-2 bg-gray-100 min-h-[100px]"
-            dangerouslySetInnerHTML={{ __html: popupData[0].content || '-' }}
-          />
-        </div>
-
-        {/* Remarks */}
-        <div>
-          <label className="block text-sm font-medium">Remarks</label>
-          <textarea
-            value={popupData[0].remarks || '-'}
-            disabled
-            className="w-full mt-1 border rounded px-3 py-2 bg-gray-100"
-          />
-        </div>
-
-        <div className="text-right mt-4">
-          <button
-            type="button"
-            onClick={() => setPopupOpen(false)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Close
-          </button>
-        </div>
-      </form>
-    ) : (
-      <p className="text-red-500">Data tidak tersedia.</p>
-    )}
+      )}
+    </div>
   </div>
 </Popup>
 
