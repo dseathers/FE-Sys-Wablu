@@ -1,11 +1,19 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useEditor, EditorContent } from '@tiptap/react';
+import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation';
+import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import styles from '../../../style/createissue.module.css';
-import TiptapEditor from '../../../components/tiptapeditor/page';
+import styles from '../../style/createissue.module.css';
+import TiptapEditor from '../../components/tiptapeditor/page';
 
-const CreateIssue = ({ loginData }) => {
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+const CreateIssue = () => {
+  const [loginData, setLoginData] = useState(null);
   const [developerList, setDeveloperList] = useState([]);
   const [statusList, setStatusList] = useState([]);
   const [priorityList, setPriorityList] = useState([]);
@@ -17,12 +25,15 @@ const CreateIssue = ({ loginData }) => {
   const [content, setContent] = useState('');
   const [remarks, setRemarks] = useState('');
 
+  const router = useRouter();
+
   const editor = useEditor({
     extensions: [StarterKit],
     content: '',
     onUpdate: ({ editor }) => setContent(editor.getHTML()),
   });
 
+  // Fetch dropdown data
   useEffect(() => {
     axios.get('http://127.0.0.1:8000/api/user-dev-ddl')
       .then(res => setDeveloperList(res.data))
@@ -37,8 +48,31 @@ const CreateIssue = ({ loginData }) => {
       .catch(err => console.error('Failed to fetch priority list:', err));
   }, []);
 
+  // Fetch loginData
+  useEffect(() => {
+    const fetchLoginInfo = async (email) => {
+      try {
+        const res = await axios.post('http://127.0.0.1:8000/api/get-login-info', { email });
+        setLoginData(res.data.data[0]);
+      } catch (err) {
+        console.error('Failed to get login data:', err);
+      }
+    };
+
+    const email = Cookies.get('email');
+    if (email) {
+      fetchLoginInfo(email);
+    } else {
+      console.error('Email not found in cookies');
+    }
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!loginData) {
+      toast.error('Login data not loaded.');
+      return;
+    }
 
     try {
       await axios.post('http://127.0.0.1:8000/api/user-transaction', {
@@ -52,12 +86,19 @@ const CreateIssue = ({ loginData }) => {
         created_by: loginData?.team_id
       });
 
-      alert('Issue submitted successfully');
+      toast.success('Submitted successfully! 🎉');
+      setTimeout(() => {
+        router.push('/qa/listissue');
+      }, 2000);
     } catch (error) {
       console.error('Error submitting issue:', error);
-      alert('Failed to submit issue');
+      toast.error('Failed to submit issue 😢');
     }
   };
+
+  if (!loginData) {
+    return <p className="p-6 text-gray-600">Loading user info...</p>;
+  }
 
   return (
     <div>
@@ -68,7 +109,12 @@ const CreateIssue = ({ loginData }) => {
         <div className={styles.formRow}>
           <div className={styles.formColumn}>
             <label className={styles.label}>Team Name</label>
-            <input type="text" value={loginData?.team_name || 'Loading...'} disabled className={styles.input}/>
+            <input
+              type="text"
+              value={loginData?.team_name || 'Loading...'}
+              disabled
+              className={styles.input}
+            />
           </div>
           <div className={styles.formColumn}>
             <label className={styles.label}>Assign To (Developer)</label>
@@ -130,11 +176,11 @@ const CreateIssue = ({ loginData }) => {
           />
         </div>
 
-        {/* Content (Tiptap) */}
-<div>
-  <label className={styles.label}>Content</label>
-  <TiptapEditor content={content} onChange={setContent} />
-</div>
+        {/* Content */}
+        <div>
+          <label className={styles.label}>Content</label>
+          <TiptapEditor content={content} onChange={setContent} />
+        </div>
 
         {/* Remarks */}
         <div>
@@ -148,6 +194,8 @@ const CreateIssue = ({ loginData }) => {
 
         <button type="submit" className={styles.button}>Submit Issue</button>
       </form>
+
+      <ToastContainer position="top-right" autoClose={2000} />
     </div>
   );
 };
