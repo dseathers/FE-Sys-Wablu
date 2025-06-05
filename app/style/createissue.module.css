@@ -141,7 +141,7 @@
 }
 
 /* Tiptap Editor Styling */
-:global(.ProseMirror) {
+.editorContainer :global(.ProseMirror) {
   padding: 1rem;
   border: 2px solid #e2e8f0;
   border-radius: 0.5rem;
@@ -150,33 +150,33 @@
   transition: all 0.3s ease;
 }
 
-:global(.ProseMirror:focus) {
+.editorContainer :global(.ProseMirror:focus) {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   background: white;
 }
 
-:global(.ProseMirror p) {
+.editorContainer :global(.ProseMirror p) {
   margin: 0;
   line-height: 1.6;
 }
 
-:global(.ProseMirror h1),
-:global(.ProseMirror h2),
-:global(.ProseMirror h3) {
+.editorContainer :global(.ProseMirror h1),
+.editorContainer :global(.ProseMirror h2),
+.editorContainer :global(.ProseMirror h3) {
   margin: 1rem 0 0.5rem;
   font-weight: 600;
   color: #1e293b;
 }
 
-:global(.ProseMirror ul),
-:global(.ProseMirror ol) {
+.editorContainer :global(.ProseMirror ul),
+.editorContainer :global(.ProseMirror ol) {
   padding-left: 1.5rem;
   margin: 0.5rem 0;
 }
 
-:global(.ProseMirror blockquote) {
+.editorContainer :global(.ProseMirror blockquote) {
   border-left: 4px solid #e2e8f0;
   padding-left: 1rem;
   margin: 0.5rem 0;
