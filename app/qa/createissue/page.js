@@ -33,7 +33,6 @@ const CreateIssue = () => {
     onUpdate: ({ editor }) => setContent(editor.getHTML()),
   });
 
-  // Fetch dropdown data
   useEffect(() => {
     axios.get('http://127.0.0.1:8000/api/user-dev-ddl')
       .then(res => setDeveloperList(res.data))
@@ -48,7 +47,6 @@ const CreateIssue = () => {
       .catch(err => console.error('Failed to fetch priority list:', err));
   }, []);
 
-  // Fetch loginData
   useEffect(() => {
     const fetchLoginInfo = async (email) => {
       try {
@@ -105,7 +103,6 @@ const CreateIssue = () => {
       <form onSubmit={handleSubmit} className={styles.formContainer}>
         <h1 className={styles.heading}>Create Issue</h1>
 
-        {/* Row: Team Name & Developer */}
         <div className={styles.formRow}>
           <div className={styles.formColumn}>
             <label className={styles.label}>Team Name</label>
@@ -132,7 +129,6 @@ const CreateIssue = () => {
           </div>
         </div>
 
-        {/* Row: Status & Priority */}
         <div className={styles.formRow}>
           <div className={styles.formColumn}>
             <label className={styles.label}>Status</label>
@@ -164,7 +160,6 @@ const CreateIssue = () => {
           </div>
         </div>
 
-        {/* Title */}
         <div>
           <label className={styles.label}>Title</label>
           <input
@@ -176,13 +171,13 @@ const CreateIssue = () => {
           />
         </div>
 
-        {/* Content */}
         <div>
           <label className={styles.label}>Content</label>
-          <TiptapEditor content={content} onChange={setContent} />
+          <div className={styles.editorContainer}>
+            <TiptapEditor content={content} onChange={setContent} />
+          </div>
         </div>
 
-        {/* Remarks */}
         <div>
           <label className={styles.label}>Remarks</label>
           <textarea
