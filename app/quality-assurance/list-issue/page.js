@@ -18,6 +18,11 @@ const ListIssuePage = () => {
   const [pageNumber, setPageNumber] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterPriority, setFilterPriority] = useState('');
+  const [filterAssignee, setFilterAssignee] = useState('');
+
   const fetchLoginInfo = async (email) => {
     try {
       const res = await axios.post('http://127.0.0.1:8000/api/get-login-info', { email });
@@ -34,6 +39,7 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
       'http://127.0.0.1:8000/api/get-transaction-by-requestor',
       {
         created_by_id: teamId,
+        search: searchTerm,
         pageSize: size,
         pageNumber: page,
         orderBy: sortOrder,
@@ -53,6 +59,12 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
     console.error('Failed to fetch issues:', error);
   }
 };
+
+  const handleFilterChange = () => {
+    if (loginData?.team_id) {
+      fetchIssues(loginData.team_id);
+    }
+  };
 
   const handleSort = (field) => {
     const newOrder = sortBy === field && orderBy === 'asc' ? 'desc' : 'asc';
@@ -83,6 +95,16 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
     const email = Cookies.get('email');
     if (email) fetchLoginInfo(email);
   }, []);
+
+  useEffect(() => {
+  const delayDebounce = setTimeout(() => {
+    if (loginData?.team_id) {
+      fetchIssues(loginData.team_id, sortBy, orderBy);
+    }
+  }, 400);
+
+  return () => clearTimeout(delayDebounce);
+}, [searchTerm]);
 
   useEffect(() => {
     if (loginData?.team_id) {
@@ -120,6 +142,36 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
 
   return (
     <div className={styles.container}>
+      <div className="flex flex-wrap gap-4 items-center bg-white rounded-xl shadow-md px-8 py-5 mb-6 mt-6 w-full">
+        <input
+          type="text"
+          placeholder="Search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1 min-w-[180px] px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+        />
+        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition">
+          <option>All Status</option>
+          <option value="OPEN">OPEN</option>
+          <option value="RE-OPEN">RE-OPEN</option>
+          <option value="READY TEST">READY TEST</option>
+        </select>
+        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition">
+          <option>All Priority</option>
+          <option value="LOW">LOW</option>
+          <option value="MID">MID</option>
+          <option value="HIGH">HIGH</option>
+        </select>
+        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition">
+          <option>All Assignee</option>
+          <option value="Tio Purnomo">Tio Purnomo</option>
+          <option value="Joko Santoso">Joko Santoso</option>
+          <option value="Asep Basuki">Asep Basuki</option>
+          <option value="Gita Pramudita">Gita Pramudita</option>
+          <option value="Dedi Saputra">Dedi Saputra</option>
+        </select>
+      </div>
+
       <div className={styles.tableContainer}>
         <table className={styles.table}>
           <thead className={styles.tableHeader}>
