@@ -24,6 +24,7 @@ const CreateIssue = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [path, setPath] = useState('');
 
   const router = useRouter();
 
@@ -81,12 +82,13 @@ const CreateIssue = () => {
         priority_id: selectedPriority,
         content: content,
         remarks: remarks,
+        path: path,
         created_by: loginData?.team_id
       });
 
       toast.success('Submitted successfully! 🎉');
       setTimeout(() => {
-        router.push('/qa/listissue');
+        router.push('/qa/list-issue');
       }, 2000);
     } catch (error) {
       console.error('Error submitting issue:', error);
@@ -176,6 +178,17 @@ const CreateIssue = () => {
           <div className={styles.editorContainer}>
             <TiptapEditor content={content} onChange={setContent} />
           </div>
+        </div>
+
+        <div>
+          <label className={styles.label}>Link</label>
+          <input
+            type="text"
+            value={path}
+            onChange={(e) => setPath(e.target.value)}
+            required
+            className={styles.input}
+          />
         </div>
 
         <div>

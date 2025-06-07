@@ -49,7 +49,7 @@ const Login = () => {
       if (roleId === 'dev') {
         router.push('/developer');
       } else if (roleId === 'qa_tester') {
-        router.push('/qa');
+        router.push('/quality-assurance');
       } else if (roleId === 'admin') {
         router.push('/admin');
       }
