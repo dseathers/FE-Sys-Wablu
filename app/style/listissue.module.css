@@ -41,14 +41,24 @@
     cursor: pointer;
   }
   
+.container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* ⬅ ini penting untuk mepet kiri */
+  padding-left: 0; /* hapus jika ada padding kiri */
+  margin-left: 0;
+}
+
   /* Tabel Styling */
-  .tableContainer {
-    background: white;
-    border-radius: 1rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-    margin: 2rem 0;
-  }
+.tableContainer {
+  width: 100%; /* jangan 120% */
+  margin: 2rem 0;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
   
   .table {
     width: 100%;
@@ -68,6 +78,8 @@
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    position: relative;
+    border-right: 1.5px solid #fff;
   }
   
   .tableBody tr {
@@ -266,5 +278,59 @@
     .filterSelect {
       width: 100%;
     }
+  }
+  
+  .sortButton {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 0 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+    box-shadow: none;
+    outline: none;
+    vertical-align: middle;
+    height: 20px;
+  }
+  
+  .sortButton:hover,
+  .sortButton.active {
+    background: none;
+    color: #fff;
+  }
+  
+  .sortIcon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin: 0;
+  }
+  
+  .sortIcon svg {
+    width: 10px;
+    height: 10px;
+    stroke: #fff;
+    fill: none;
+    display: block;
+    margin: 0;
+  }
+  
+  .sortIcon .upArrow,
+  .sortIcon .downArrow {
+    opacity: 1;
+  }
+  
+  .thContent {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
   }
   
