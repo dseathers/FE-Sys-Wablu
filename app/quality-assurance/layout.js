@@ -69,7 +69,7 @@ export default function QaLayout({ children }) {
 
         <div className="w-full px-6 space-y-3 relative z-10">
           <Link 
-            href="/qa/createissue" 
+            href="/quality-assurance/create-issue" 
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/10 backdrop-blur-sm ${activeLink === 'create' ? 'bg-white/20 shadow-lg' : ''}`}
             onClick={() => setActiveLink('create')}
           >
@@ -79,7 +79,7 @@ export default function QaLayout({ children }) {
             <span className="font-medium">Create Issue</span>
           </Link>
           <Link 
-            href="/qa/listissue" 
+            href="/quality-assurance/list-issue" 
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/10 backdrop-blur-sm ${activeLink === 'list' ? 'bg-white/20 shadow-lg' : ''}`}
             onClick={() => setActiveLink('list')}
           >
@@ -89,7 +89,7 @@ export default function QaLayout({ children }) {
             <span className="font-medium">List Issue</span>
           </Link>
           <Link 
-            href="/qa" 
+            href="/quality-assurance" 
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/10 backdrop-blur-sm ${activeLink === 'task' ? 'bg-white/20 shadow-lg' : ''}`}
             onClick={() => setActiveLink('task')}
           >
@@ -166,14 +166,15 @@ export default function QaLayout({ children }) {
       </aside>
 
       {/* Main Content - margin left sesuai sidebar */}
-      <main
-        className="h-screen overflow-y-auto p-8"
-        style={{ marginLeft: SIDEBAR_WIDTH }}
-      >
-        <div className="max-w-7xl mx-auto bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 min-h-[calc(100vh-4rem)] border border-gray-100">
-          {children}
-        </div>
-      </main>
+<main
+  className="h-screen overflow-y-auto px-0 py-8"
+  style={{ marginLeft: SIDEBAR_WIDTH }}
+>
+  <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl px-6 py-6 min-h-[calc(100vh-4rem)] border border-gray-100">
+    {children}
+  </div>
+</main>
+
     </div>
   );
 }

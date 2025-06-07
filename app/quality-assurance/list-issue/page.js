@@ -13,7 +13,10 @@ const ListIssuePage = () => {
   const [popupData, setPopupData] = useState(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [sortBy, setSortBy] = useState('');
-  const [orderBy, setOrderBy] = useState('asc');
+  const [orderBy, setOrderBy] = useState('desc');
+  const [pageSize, setPageSize] = useState(10);
+  const [pageNumber, setPageNumber] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
 
   const fetchLoginInfo = async (email) => {
     try {
@@ -24,31 +27,32 @@ const ListIssuePage = () => {
     }
   };
 
-  const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc') => {
-    const token = Cookies.get('token');
-    try {
-      const res = await axios.post(
-        'http://127.0.0.1:8000/api/get-transaction-by-requestor',
-        {
-          created_by_id: teamId,
-          pageSize: 10,
-          pageNumber: 0,
-          orderBy: sortOrder,
-          sortBy: sortField,
+const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pageSize, page = pageNumber) => {
+  const token = Cookies.get('token');
+  try {
+    const res = await axios.post(
+      'http://127.0.0.1:8000/api/get-transaction-by-requestor',
+      {
+        created_by_id: teamId,
+        pageSize: size,
+        pageNumber: page,
+        orderBy: sortOrder,
+        sortBy: sortField,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      setIssues(res.data.data);
-    } catch (error) {
-      console.error('Failed to fetch issues:', error);
-    }
-  };
+      }
+    );
+    setIssues(res.data.data);
+    setTotalItems(res.data.total || res.data.totalItems || 0); // pastikan backend mengembalikan total
+  } catch (error) {
+    console.error('Failed to fetch issues:', error);
+  }
+};
 
   const handleSort = (field) => {
     const newOrder = sortBy === field && orderBy === 'asc' ? 'desc' : 'asc';
@@ -56,6 +60,22 @@ const ListIssuePage = () => {
     setOrderBy(newOrder);
     if (loginData?.team_id) {
       fetchIssues(loginData.team_id, field, newOrder);
+    }
+  };
+
+  const handlePageChange = (page) => {
+    setPageNumber(page);
+    if (loginData?.team_id) {
+      fetchIssues(loginData.team_id, sortBy, orderBy, pageSize, page);
+    }
+  };
+
+  const handlePageSizeChange = (e) => {
+    const size = parseInt(e.target.value);
+    setPageSize(size);
+    setPageNumber(0);
+    if (loginData?.team_id) {
+      fetchIssues(loginData.team_id, sortBy, orderBy, size, 0);
     }
   };
 
@@ -96,12 +116,29 @@ const ListIssuePage = () => {
     }
   };
 
+    const totalPages = Math.ceil(totalItems / pageSize);
+
   return (
     <div className={styles.container}>
       <div className={styles.tableContainer}>
         <table className={styles.table}>
           <thead className={styles.tableHeader}>
             <tr>
+              <th><span className={styles.thContent}>Issue No
+                <button 
+                  className={`${styles.sortButton} ${sortBy === 'issue_no' ? styles.active : ''} ${sortBy === 'issue_no' && orderBy === 'desc' ? styles.desc : ''}`}
+                  onClick={() => handleSort('issue_no')}
+                >
+                  <span className={styles.sortIcon}>
+                    <svg className={styles.upArrow} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 15l-6-6-6 6"/>
+                    </svg>
+                    <svg className={styles.downArrow} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </span>
+                </button>
+              </span></th>
               <th><span className={styles.thContent}>Created By
                 <button 
                   className={`${styles.sortButton} ${sortBy === 'created_by' ? styles.active : ''} ${sortBy === 'created_by' && orderBy === 'desc' ? styles.desc : ''}`}
@@ -192,18 +229,35 @@ const ListIssuePage = () => {
                   </span>
                 </button>
               </span></th>
+              <th><span className={styles.thContent}>Created Date
+                <button 
+                  className={`${styles.sortButton} ${sortBy === 'created_at' ? styles.active : ''} ${sortBy === 'created_at' && orderBy === 'desc' ? styles.desc : ''}`}
+                  onClick={() => handleSort('created_at')}
+                >
+                  <span className={styles.sortIcon}>
+                    <svg className={styles.upArrow} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 15l-6-6-6 6"/>
+                    </svg>
+                    <svg className={styles.downArrow} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </span>
+                </button>
+              </span></th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody className={styles.tableBody}>
             {issues.map((issue, index) => (
               <tr key={index}>
+                <td>{issue.issue_no}</td>
                 <td>{issue.created_by}</td>
                 <td>{issue.title}</td>
                 <td>{issue.requestor}</td>
                 <td>{issue.acceptor}</td>
                 <td><span className={`${styles.statusBadge} ${styles.statusOpen}`}>{issue.status}</span></td>
                 <td><span className={`${styles.priorityBadge} ${styles.priorityHigh}`}>{issue.priority}</span></td>
+                <td>{issue.created_at}</td>
                 <td>
                   <button className={styles.actionButton} onClick={() => handleView(issue.created_by_id, issue.issueid)}>View</button>
                   <button className={styles.actionButton}>Edit</button>
@@ -212,6 +266,37 @@ const ListIssuePage = () => {
             ))}
           </tbody>
         </table>
+                <div className={styles.pagination}>
+          <span>
+            {totalItems > 0
+              ? `${pageNumber * pageSize + 1}-${Math.min((pageNumber + 1) * pageSize, totalItems)} of ${totalItems} items`
+              : 'No items'}
+          </span>
+          <button
+            className={styles.pageButton}
+            onClick={() => handlePageChange(pageNumber - 1)}
+            disabled={pageNumber === 0}
+          >
+            &#x3c;
+          </button>
+          <span className={styles.pageButton}>{pageNumber + 1}</span>
+          <button
+            className={styles.pageButton}
+            onClick={() => handlePageChange(pageNumber + 1)}
+            disabled={pageNumber + 1 >= totalPages}
+          >
+            &#x3e;
+          </button>
+          <select
+            className={styles.pageButton}
+            value={pageSize}
+            onChange={handlePageSizeChange}
+          >
+            {[10, 25, 50, 100].map((size) => (
+              <option key={size} value={size}>{`${size} / page`}</option>
+            ))}
+          </select>
+        </div>
       </div>
       {/* Popup can stay as-is or be added back */}
 <Popup
