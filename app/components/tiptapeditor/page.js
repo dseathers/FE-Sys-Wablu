@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -29,8 +30,15 @@ export default function TiptapEditor({ content, onChange }) {
     content,
     onUpdate({ editor }) {
       onChange(editor.getHTML())
-    }
+    },
   })
+
+  // ⛳️ Hook tidak boleh dipanggil setelah return!
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content, false)
+    }
+  }, [editor, content])
 
   if (!editor) return null
 
@@ -55,7 +63,6 @@ export default function TiptapEditor({ content, onChange }) {
           const url = prompt('Masukkan URL link')
           if (url) editor.chain().focus().setLink({ href: url }).run()
         }, LinkIcon, 'Link')}
-
         {iconBtn(false, () => {
           const input = document.createElement('input')
           input.type = 'file'
@@ -73,14 +80,13 @@ export default function TiptapEditor({ content, onChange }) {
           }
           input.click()
         }, ImageIcon, 'Upload Gambar')}
-
         {iconBtn(editor.isActive({ textAlign: 'left' }), () => editor.chain().focus().setTextAlign('left').run(), AlignLeft, 'Left')}
         {iconBtn(editor.isActive({ textAlign: 'center' }), () => editor.chain().focus().setTextAlign('center').run(), AlignCenter, 'Center')}
         {iconBtn(editor.isActive({ textAlign: 'right' }), () => editor.chain().focus().setTextAlign('right').run(), AlignRight, 'Right')}
       </div>
 
       <div className="border rounded-md p-4 shadow-sm min-h-[200px] bg-white">
-        <EditorContent editor={editor} className="m-4"/>
+        <EditorContent editor={editor} className="m-4" />
       </div>
     </div>
   )

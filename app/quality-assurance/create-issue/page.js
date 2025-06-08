@@ -88,7 +88,7 @@ const CreateIssue = () => {
 
       toast.success('Submitted successfully! 🎉');
       setTimeout(() => {
-        router.push('/qa/list-issue');
+        router.push('/quality-assurance/list-issue');
       }, 2000);
     } catch (error) {
       console.error('Error submitting issue:', error);

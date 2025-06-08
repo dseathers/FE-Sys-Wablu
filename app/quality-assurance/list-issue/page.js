@@ -8,6 +8,8 @@ import 'reactjs-popup/dist/index.css';
 import dynamic from 'next/dynamic';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import { useRouter } from 'next/navigation';
+
 const Popup = dynamic(() => import('reactjs-popup'), { ssr: false });
 const ListIssuePage = () => {
   const [loginData, setLoginData] = useState(null);
@@ -20,7 +22,16 @@ const ListIssuePage = () => {
   const [pageNumber, setPageNumber] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
 
+  const [developerList, setDeveloperList] = useState([]);
+  const [statusList, setStatusList] = useState([]);
+  const [priorityList, setPriorityList] = useState([]);
+
+  const [selectedDeveloper, setSelectedDeveloper] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedPriority, setSelectedPriority] = useState('');
   const [mounted, setMounted] = useState(false);
+
+  const router = useRouter();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -120,7 +131,21 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
     }
   }, [loginData, sortBy, orderBy]);
 
-  const handleView = async (createdById, issueId) => {
+    useEffect(() => {
+      axios.get('http://127.0.0.1:8000/api/user-dev-ddl')
+        .then(res => setDeveloperList(res.data))
+        .catch(err => console.error('Failed to fetch developers:', err));
+  
+      axios.get('http://127.0.0.1:8000/api/issue-status-ddl')
+        .then(res => setStatusList(res.data))
+        .catch(err => console.error('Failed to fetch status list:', err));
+  
+      axios.get('http://127.0.0.1:8000/api/issue-priority-ddl')
+        .then(res => setPriorityList(res.data))
+        .catch(err => console.error('Failed to fetch priority list:', err));
+    }, []);
+
+  const handleView = async (createdById, issueId, id) => {
     const token = Cookies.get('token');
     try {
       const res = await axios.post(
@@ -128,6 +153,7 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
         {
           created_by_id: createdById,
           issueid: issueId,
+          id: id
         },
         {
           headers: {
@@ -158,22 +184,29 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 min-w-[180px] px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white transition"
         />
-        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition">
-          <option>All Status</option>
-          <option value="OPEN">OPEN</option>
-          <option value="RE-OPEN">RE-OPEN</option>
-          <option value="READY TEST">READY TEST</option>
+        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}>
+          <option value="">All Status</option>
+                {statusList.map(status => (
+                <option key={status.status_id} value={status.status_id}>{status.status_name}</option>
+              ))}
+    
         </select>
-        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition">
-          <option>All Priority</option>
-          <option value="LOW">LOW</option>
-          <option value="MID">MID</option>
-          <option value="HIGH">HIGH</option>
+        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}>
+          <option value="">All Priority</option>
+                {priorityList.map(priority => (
+                <option key={priority.priority_id} value={priority.priority_id}>{priority.priority_name}</option>
+              ))}
+
         </select>
-        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition">
+        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
+        >
           <option>All Assignee</option>
-          <option value="Tio Purnomo">Tio Purnomo</option>
           <option value="Joko Santoso">Joko Santoso</option>
+          <option value="Tio Purnomo">Tio Purnomo</option>
           <option value="Asep Basuki">Asep Basuki</option>
           <option value="Gita Pramudita">Gita Pramudita</option>
           <option value="Dedi Saputra">Dedi Saputra</option>
@@ -320,8 +353,8 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
                   <td><span className={`${styles.priorityBadge} ${styles.priorityHigh}`}>{issue.priority}</span></td>
                   <td>{issue.created_at}</td>
                   <td>
-                    <button className={styles.actionButton} onClick={() => handleView(issue.created_by_id, issue.issueid)}>View</button>
-                    <button className={styles.actionButton}>Edit</button>
+                    <button className={styles.actionButton} onClick={() => handleView(issue.created_by_id, issue.issueid, issue.id)}>View</button>
+                    <button className={styles.actionButton} onClick={() => router.push(`/quality-assurance/edit-issue?id=${issue.id}&issueid=${issue.issueid}`)}>Edit</button>
                   </td>
                 </tr>
               ))
