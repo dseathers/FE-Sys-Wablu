@@ -34,9 +34,7 @@ const ListIssuePage = () => {
   const router = useRouter();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterPriority, setFilterPriority] = useState('');
-  const [filterAssignee, setFilterAssignee] = useState('');
+
 
   useEffect(() => {
     setMounted(true);
@@ -59,6 +57,9 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
       {
         created_by_id: teamId,
         search: searchTerm,
+        status: selectedStatus,
+        priority: selectedPriority,
+        assignee: selectedDeveloper,
         pageSize: size,
         pageNumber: page,
         orderBy: sortOrder,
@@ -79,11 +80,60 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
   }
 };
 
-  const handleFilterChange = () => {
-    if (loginData?.team_id) {
-      fetchIssues(loginData.team_id);
-    }
-  };
+const handleFilterChange = (field, value) => {
+  let updatedStatus = selectedStatus;
+  let updatedPriority = selectedPriority;
+  let updatedAssignee = selectedDeveloper;
+
+  if (field === 'status') {
+    setSelectedStatus(value);
+    updatedStatus = value;
+  }
+  if (field === 'priority') {
+    setSelectedPriority(value);
+    updatedPriority = value;
+  }
+  if (field === 'assignee') {
+    setSelectedDeveloper(value);
+    updatedAssignee = value;
+  }
+
+  if (loginData?.team_id) {
+    fetchIssuesWithFilter(loginData.team_id, updatedStatus, updatedPriority, updatedAssignee);
+  }
+};
+
+const fetchIssuesWithFilter = async (teamId, status, priority, assignee, sortField = '', sortOrder = 'asc', size = pageSize, page = pageNumber) => {
+  const token = Cookies.get('token');
+  try {
+    const res = await axios.post(
+      'http://127.0.0.1:8000/api/get-transaction-by-requestor',
+      {
+        created_by_id: teamId,
+        search: searchTerm,
+        status,
+        priority,
+        assignee,
+        pageSize: size,
+        pageNumber: page,
+        orderBy: sortOrder,
+        sortBy: sortField,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    setIssues(res.data.data);
+    setTotalItems(res.data.total || res.data.totalItems || 0);
+  } catch (error) {
+    console.error('Failed to fetch issues:', error);
+  }
+};
+
 
   const handleSort = (field) => {
     const newOrder = sortBy === field && orderBy === 'asc' ? 'desc' : 'asc';
@@ -185,31 +235,30 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
           className="flex-1 min-w-[180px] px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white transition"
         />
         <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}>
-          <option value="">All Status</option>
-                {statusList.map(status => (
-                <option key={status.status_id} value={status.status_id}>{status.status_name}</option>
-              ))}
+          value={selectedStatus}
+          onChange={(e) => handleFilterChange('status', e.target.value)}>
+          <option value="">Status</option>
+          {statusList.map(status => (
+            <option key={status.status_id} value={status.status_id}>{status.status_name}</option>
+          ))}
     
         </select>
         <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
-                value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}>
-          <option value="">All Priority</option>
-                {priorityList.map(priority => (
-                <option key={priority.priority_id} value={priority.priority_id}>{priority.priority_name}</option>
-              ))}
+          value={selectedPriority}
+          onChange={(e) => handleFilterChange('priority', e.target.value)}>
+          <option value="">Priority</option>
+          {priorityList.map(priority => (
+            <option key={priority.priority_id} value={priority.priority_id}>{priority.priority_name}</option>
+          ))}
 
         </select>
         <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
-        >
-          <option>All Assignee</option>
-          <option value="Joko Santoso">Joko Santoso</option>
-          <option value="Tio Purnomo">Tio Purnomo</option>
-          <option value="Asep Basuki">Asep Basuki</option>
-          <option value="Gita Pramudita">Gita Pramudita</option>
-          <option value="Dedi Saputra">Dedi Saputra</option>
+          value={selectedDeveloper}
+          onChange={(e) => handleFilterChange('assignee', e.target.value)}>
+          <option value="">Assignee</option>
+          {developerList.map(dev => (
+            <option key={dev.team_id} value={dev.team_id}>{dev.team_name}</option>
+          ))}
         </select>
       </div>
 
