@@ -1,11 +1,17 @@
-import React from 'react'
+'use client'
 
-const EditIssue = () => {
+import { Suspense } from 'react'
+import EditIssueForm from '../../components/EditIssueForm'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+
+export default function Page() {
   return (
-    <div>
-      <h1>Edittttt</h1>
-    </div>
+    <>
+      <Suspense fallback={<div>Loading...</div>}>
+        <EditIssueForm />
+      </Suspense>
+      <ToastContainer />
+    </>
   )
 }
-
-export default EditIssue

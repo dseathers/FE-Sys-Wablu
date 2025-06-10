@@ -1,18 +1,20 @@
-'use client';
+'use client'
 
-import React, { useEffect, useState } from 'react';
+
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation';
-import { useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import styles from '../../style/createissue.module.css';
-import TiptapEditor from '../../components/tiptapeditor/page';
-
+import styles from '../style/createissue.module.css';
+import TiptapEditor from '../components/tiptapeditor/page';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const CreateIssue = () => {
+const EditIssueForm = () => {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
+  const issueid = searchParams.get('issueid');
+
   const [loginData, setLoginData] = useState(null);
   const [developerList, setDeveloperList] = useState([]);
   const [statusList, setStatusList] = useState([]);
@@ -22,17 +24,49 @@ const CreateIssue = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedPriority, setSelectedPriority] = useState('');
   const [title, setTitle] = useState('');
+  const [issueNo, setIssueNo] = useState('');
+  const [issueId, setIssueId] = useState('');
   const [content, setContent] = useState('');
   const [remarks, setRemarks] = useState('');
   const [path, setPath] = useState('');
 
+  const [data, setData] = useState(null);
   const router = useRouter();
 
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: '',
-    onUpdate: ({ editor }) => setContent(editor.getHTML()),
-  });
+  useEffect(() => {
+    const fetchIssueDtl = async () => {
+      try {
+        const token = Cookies.get('token');
+        const res = await axios.post(
+          'http://127.0.0.1:8000/api/get-transaction-dtl',
+          { id, issueid },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        const d = res.data.data[0];
+        setData(d);
+
+        // Set nilai awal form
+        setIssueId(d.issueid);
+        setIssueNo(d.issue_no);
+        setSelectedDeveloper(d.acceptor_id || '');
+        setSelectedStatus(d.status_id || '');
+        setSelectedPriority(d.priority_id || '');
+        setTitle(d.title || '');
+        setContent(d.content || '');
+        setRemarks(d.remarks || '');
+        setPath(d.path || '');
+      } catch (error) {
+        console.error('Gagal mengambil detail:', error);
+      }
+    };
+    fetchIssueDtl();
+  }, [id, issueid]);
 
   useEffect(() => {
     axios.get('http://127.0.0.1:8000/api/user-dev-ddl')
@@ -49,20 +83,11 @@ const CreateIssue = () => {
   }, []);
 
   useEffect(() => {
-    const fetchLoginInfo = async (email) => {
-      try {
-        const res = await axios.post('http://127.0.0.1:8000/api/get-login-info', { email });
-        setLoginData(res.data.data[0]);
-      } catch (err) {
-        console.error('Failed to get login data:', err);
-      }
-    };
-
     const email = Cookies.get('email');
     if (email) {
-      fetchLoginInfo(email);
-    } else {
-      console.error('Email not found in cookies');
+      axios.post('http://127.0.0.1:8000/api/get-login-info', { email })
+        .then(res => setLoginData(res.data.data[0]))
+        .catch(err => console.error('Failed to get login data:', err));
     }
   }, []);
 
@@ -75,14 +100,17 @@ const CreateIssue = () => {
 
     try {
       await axios.post('http://127.0.0.1:8000/api/user-transaction', {
-        title: title,
+        id,
+        issueid: issueId,
+        issue_no: issueNo,
+        title,
         requestor: loginData?.team_id,
         acceptor: selectedDeveloper,
         status: selectedStatus,
         priority_id: selectedPriority,
-        content: content,
-        remarks: remarks,
-        path: path,
+        content,
+        remarks,
+        path,
         created_by: loginData?.team_id
       });
 
@@ -96,21 +124,17 @@ const CreateIssue = () => {
     }
   };
 
-  if (!loginData) {
-    return <p className="p-6 text-gray-600">Loading user info...</p>;
-  }
-
   return (
     <div>
       <form onSubmit={handleSubmit} className={styles.formContainer}>
-        <h1 className={styles.heading}>Create Issue</h1>
+        <h1 className={styles.heading}>Edit Issue</h1>
 
         <div className={styles.formRow}>
           <div className={styles.formColumn}>
             <label className={styles.label}>Team Name</label>
             <input
               type="text"
-              value={loginData?.team_name || 'Loading...'}
+              value={data?.requestor || ''}
               disabled
               className={styles.input}
             />
@@ -186,7 +210,6 @@ const CreateIssue = () => {
             type="text"
             value={path}
             onChange={(e) => setPath(e.target.value)}
-            required
             className={styles.input}
           />
         </div>
@@ -208,4 +231,4 @@ const CreateIssue = () => {
   );
 };
 
-export default CreateIssue;
+export default EditIssueForm;
