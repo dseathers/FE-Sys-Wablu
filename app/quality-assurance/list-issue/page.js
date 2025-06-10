@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useRouter } from 'next/navigation';
+import { Suspense } from 'react'
 
 const Popup = dynamic(() => import('reactjs-popup'), { ssr: false });
 const ListIssuePage = () => {
