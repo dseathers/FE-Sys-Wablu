@@ -68,6 +68,16 @@ export default function ClientLayout({ children }) {
         </div>
 
         <div className="w-full px-6 space-y-3 relative z-10">
+        <Link 
+            href="/quality-assurance" 
+            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/10 backdrop-blur-sm ${activeLink === 'task' ? 'bg-white/20 shadow-lg' : ''}`}
+            onClick={() => setActiveLink('task')}
+          >
+            <div className="p-2 bg-pink-500/20 rounded-lg">
+              <ClipboardList size={20} className="text-pink-400" />
+            </div>
+            <span className="font-medium">Dashboard</span>
+          </Link>
           <Link 
             href="/quality-assurance/create-issue" 
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/10 backdrop-blur-sm ${activeLink === 'create' ? 'bg-white/20 shadow-lg' : ''}`}
@@ -87,16 +97,6 @@ export default function ClientLayout({ children }) {
               <List size={20} className="text-purple-400" />
             </div>
             <span className="font-medium">List Issue</span>
-          </Link>
-          <Link 
-            href="/quality-assurance" 
-            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/10 backdrop-blur-sm ${activeLink === 'task' ? 'bg-white/20 shadow-lg' : ''}`}
-            onClick={() => setActiveLink('task')}
-          >
-            <div className="p-2 bg-pink-500/20 rounded-lg">
-              <ClipboardList size={20} className="text-pink-400" />
-            </div>
-            <span className="font-medium">My Task</span>
           </Link>
         </div>
 
