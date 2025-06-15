@@ -59,7 +59,7 @@ const ListIssuePage = () => {
     }
   };
 
-  const fetchIssues = async (teamId, status = '', priority = '', assignee = '', sortField = '', sortOrder = 'asc', size = pageSize, page = pageNumber) => {
+  const fetchIssues = async (teamId, status = '', priority = '', assignee = '', sortField = '', sortOrder = 'desc', size = pageSize, page = pageNumber) => {
     const token = Cookies.get('token');
     try {
       const res = await axios.post(
