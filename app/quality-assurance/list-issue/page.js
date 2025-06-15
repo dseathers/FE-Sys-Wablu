@@ -57,6 +57,7 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
       'http://127.0.0.1:8000/api/get-transaction-by-requestor',
       {
         created_by_id: teamId,
+        acceptor_id: teamId,
         search: searchTerm,
         status: selectedStatus,
         priority: selectedPriority,
@@ -111,6 +112,7 @@ const fetchIssuesWithFilter = async (teamId, status, priority, assignee, sortFie
       'http://127.0.0.1:8000/api/get-transaction-by-requestor',
       {
         created_by_id: teamId,
+        acceptor_id: teamId,
         search: searchTerm,
         status,
         priority,

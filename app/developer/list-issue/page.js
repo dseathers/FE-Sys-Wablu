@@ -22,6 +22,9 @@ const ListIssuePage = () => {
   const [pageNumber, setPageNumber] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
 
+  const [popupHistory, setPopupHistory] = useState(null);
+  const [popupHistoryOpen, setPopupHistoryOpen] = useState(false);
+
   const [developerList, setDeveloperList] = useState([]);
   const [statusList, setStatusList] = useState([]);
   const [priorityList, setPriorityList] = useState([]);
@@ -62,6 +65,7 @@ const ListIssuePage = () => {
       const res = await axios.post(
         'http://127.0.0.1:8000/api/get-transaction-assign',
         {
+          created_by_id: teamId,
           acceptor_id: teamId,
           search: searchTerm,
           status,
@@ -143,14 +147,37 @@ const ListIssuePage = () => {
           },
         }
       );
-      setPopupData(res.data.data);
-      setPopupOpen(true);
+      setPopupHistory(res.data.data);
+      setPopup(true);
     } catch (err) {
       console.error('Gagal mengambil detail:', err);
       setPopupData(null);
       setPopupOpen(true);
     }
   };
+
+  const handleViewHistory = async (issueid) =>{
+    const token = Cookies.get('token');
+    try {
+      const res = await axios.post(
+        'http://127.0.0.1:8000/api/get-transaction-history',
+        { issueid: issueid },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      setPopupHistory(res.data.data);
+      setPopupHistoryOpen(true);
+    } catch (err) {
+      console.error('Gagal mengambil detail:', err);
+      setPopupHistory(null);
+      setPopupHistoryOpen(true);
+    }
+  }
 
   const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -332,6 +359,7 @@ const ListIssuePage = () => {
                   <td><span className={`${styles.priorityBadge} ${styles.priorityHigh}`}>{issue.priority}</span></td>
                   <td>{issue.created_at}</td>
                   <td>
+                    <button className={styles.actionButton} onClick={() => handleViewHistory(issue.issueid)}>History</button>
                     <button className={styles.actionButton} onClick={() => handleView(issue.created_by_id, issue.issueid, issue.id)}>View</button>
                     <button className={styles.actionButton} onClick={() => router.push(`/developer/edit-issue?id=${issue.id}&issueid=${issue.issueid}`)}>Edit</button>
                   </td>
@@ -378,6 +406,80 @@ const ListIssuePage = () => {
           </select>
         </div>
       </div>
+      {mounted && (
+  <Transition appear show={popupHistoryOpen} as={Fragment}>
+    <Dialog as="div" className="relative z-50" onClose={() => setPopupHistoryOpen(false)}>
+      <Transition.Child
+        as={Fragment}
+        enter="ease-out duration-300"
+        enterFrom="opacity-0"
+        enterTo="opacity-100"
+        leave="ease-in duration-200"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
+        <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+      </Transition.Child>
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0 scale-95"
+          enterTo="opacity-100 scale-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100 scale-100"
+          leaveTo="opacity-0 scale-95"
+        >
+          <Dialog.Panel className="w-full max-w-4xl rounded-xl bg-white p-6 shadow-xl overflow-y-auto max-h-[80vh]">
+            <div className="mb-6 border-b pb-4 flex justify-between items-center">
+              <Dialog.Title className="text-2xl font-bold text-gray-800">Issue History</Dialog.Title>
+              <button onClick={() => setPopupHistoryOpen(false)} className="text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {Array.isArray(popupHistory) && popupHistory.length > 0 ? (
+              <div className="space-y-6">
+                {popupHistory.map((item, index) => (
+                  <div key={index} className="relative border-l-4 border-blue-600 pl-6">
+                    <div className="absolute -left-2 top-2 w-4 h-4 rounded-full border-2 border-white bg-blue-600"></div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-800">({index + 1}) {item.status.toUpperCase()}</h3>
+                      <p className="text-sm text-gray-400">{item.created_at}</p>
+                    </div>
+                    <p className="text-sm font-medium text-gray-700 mt-1 mb-4">
+                      STEP - {item.priority === 'High' ? 'Mandatory and Sequence, Required to Approve Before another Approver Approves' : 'Not Mandatory, Only need to Acknowledge'}
+                    </p>
+                    <div className="grid grid-cols-2 gap-6 text-sm">
+                      <div>
+                        <p className="text-gray-500 font-medium mb-1">Assignee to</p>
+                        <p className="text-gray-900 font-semibold">{item.requestor}</p>
+                        <p className="text-gray-600">Requestor</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 font-medium mb-1">Completed by</p>
+                        <p className="text-gray-900 font-semibold">{item.created_by}</p>
+                        <p className="text-gray-600">{item.remarks || '-'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-8">No history data available.</div>
+            )}
+
+            <div className="mt-8 text-right">
+              <button onClick={() => setPopupHistoryOpen(false)} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg shadow">Close</button>
+            </div>
+          </Dialog.Panel>
+        </Transition.Child>
+      </div>
+    </Dialog>
+  </Transition>
+)}
       {/* Popup can stay as-is or be added back */}
    {mounted && (
         <Transition appear show={popupOpen} as={Fragment}>

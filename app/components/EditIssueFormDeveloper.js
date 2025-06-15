@@ -108,14 +108,14 @@ const EditIssueFormDeveloper = () => {
         issueid: issueId,
         issue_no: issueNo,
         title,
-        requestor: requestor,
-        acceptor: selectedDeveloper,
+        requestor: selectedDeveloper,
+        acceptor: requestor,
         status: selectedStatus,
         priority_id: selectedPriority,
         content,
         remarks,
         path,
-        created_by: createdBy
+        created_by: selectedDeveloper
       });
 
       toast.success('Submitted successfully! 🎉');
