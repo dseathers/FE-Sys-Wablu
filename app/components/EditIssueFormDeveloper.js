@@ -144,7 +144,7 @@ const EditIssueFormDeveloper = () => {
             />
           </div>
           <div className={styles.formColumn}>
-            <label className={styles.label}>Assign To (Developer)</label>
+            <label className={styles.label}>Assign To (Quality Assurance)</label>
             <select
               value={selectedDeveloper}
               onChange={(e) => setSelectedDeveloper(e.target.value)}

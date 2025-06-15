@@ -89,10 +89,6 @@ export default function ClientLayout({ children }) {
             <div className="p-2 bg-pink-500/20 rounded-lg"><ClipboardList size={20} className="text-pink-400" /></div>
             <span className="font-medium">Dashboard</span>
           </Link>
-          <Link href="/developer/create-issue" className={`flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/10 ${activeLink === 'create' ? 'bg-white/20 shadow-lg' : ''}`} onClick={() => setActiveLink('create')}>
-            <div className="p-2 bg-blue-500/20 rounded-lg"><Plus size={20} className="text-blue-400" /></div>
-            <span className="font-medium">Create Issue</span>
-          </Link>
           <Link href="/developer/list-issue" className={`flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/10 ${activeLink === 'list' ? 'bg-white/20 shadow-lg' : ''}`} onClick={() => setActiveLink('list')}>
             <div className="p-2 bg-purple-500/20 rounded-lg"><List size={20} className="text-purple-400" /></div>
             <span className="font-medium">Task</span>

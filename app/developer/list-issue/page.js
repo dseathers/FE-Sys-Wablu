@@ -147,8 +147,8 @@ const ListIssuePage = () => {
           },
         }
       );
-      setPopupHistory(res.data.data);
-      setPopup(true);
+      setPopupData(res.data.data);
+      setPopupOpen(true);
     } catch (err) {
       console.error('Gagal mengambil detail:', err);
       setPopupData(null);
@@ -178,6 +178,18 @@ const ListIssuePage = () => {
       setPopupHistoryOpen(true);
     }
   }
+
+  const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).replace(',', '');
+};
 
   const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -440,36 +452,56 @@ const ListIssuePage = () => {
               </button>
             </div>
 
-            {Array.isArray(popupHistory) && popupHistory.length > 0 ? (
-              <div className="space-y-6">
-                {popupHistory.map((item, index) => (
-                  <div key={index} className="relative border-l-4 border-blue-600 pl-6">
-                    <div className="absolute -left-2 top-2 w-4 h-4 rounded-full border-2 border-white bg-blue-600"></div>
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-800">({index + 1}) {item.status.toUpperCase()}</h3>
-                      <p className="text-sm text-gray-400">{item.created_at}</p>
-                    </div>
-                    <p className="text-sm font-medium text-gray-700 mt-1 mb-4">
-                      STEP - {item.priority === 'High' ? 'Mandatory and Sequence, Required to Approve Before another Approver Approves' : 'Not Mandatory, Only need to Acknowledge'}
-                    </p>
-                    <div className="grid grid-cols-2 gap-6 text-sm">
-                      <div>
-                        <p className="text-gray-500 font-medium mb-1">Assignee to</p>
-                        <p className="text-gray-900 font-semibold">{item.requestor}</p>
-                        <p className="text-gray-600">Requestor</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 font-medium mb-1">Completed by</p>
-                        <p className="text-gray-900 font-semibold">{item.created_by}</p>
-                        <p className="text-gray-600">{item.remarks || '-'}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 py-8">No history data available.</div>
-            )}
+{Array.isArray(popupHistory) && popupHistory.length > 0 ? (
+  <div className="space-y-6">
+    {popupHistory.map((item, index) => (
+      <div key={index} className="relative bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+        <div className="absolute -left-3 top-6 w-6 h-6 rounded-full border-4 border-white bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg"></div>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <span className="px-3 py-1 text-sm font-medium rounded-full bg-blue-50 text-blue-700">
+                #{index + 1}
+              </span>
+              <h3 className="text-lg font-bold text-gray-800 tracking-tight">
+                {item.status.toUpperCase()}
+              </h3>
+            </div>
+            <p className="text-sm text-gray-500 font-medium">{formatDate(item.created_at)}</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+              <p className="text-sm font-medium text-gray-500 mb-2">Requestor</p>
+              <p className="text-base font-semibold text-gray-900">{item.requestor || '-'}</p>
+              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.remarks || '-'}</p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+              <p className="text-sm font-medium text-gray-500 mb-2">Remarks</p>
+              <p className="text-base font-semibold text-gray-900 line-clamp-2">{item.remarks || '-'}</p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+              <p className="text-sm font-medium text-gray-500 mb-2">Assignee To</p>
+              <p className="text-base font-semibold text-gray-900">{item.acceptor || '-'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+) : (
+  <div className="flex flex-col items-center justify-center py-12 px-4">
+    <div className="w-16 h-16 mb-4 text-gray-400">
+      <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </div>
+    <p className="text-lg font-medium text-gray-500">No history data available</p>
+    <p className="text-sm text-gray-400 mt-1">The history for this issue is empty</p>
+  </div>
+)}
 
             <div className="mt-8 text-right">
               <button onClick={() => setPopupHistoryOpen(false)} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg shadow">Close</button>
