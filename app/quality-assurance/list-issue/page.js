@@ -23,6 +23,9 @@ const ListIssuePage = () => {
   const [pageNumber, setPageNumber] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
 
+  const [popupHistory, setPopupHistory] = useState(null);
+  const [popupHistoryOpen, setPopupHistoryOpen] = useState(false);
+
   const [developerList, setDeveloperList] = useState([]);
   const [statusList, setStatusList] = useState([]);
   const [priorityList, setPriorityList] = useState([]);
@@ -57,6 +60,7 @@ const fetchIssues = async (teamId, sortField = '', sortOrder = 'asc', size = pag
       'http://127.0.0.1:8000/api/get-transaction-by-requestor',
       {
         created_by_id: teamId,
+        acceptor_id: teamId,
         search: searchTerm,
         status: selectedStatus,
         priority: selectedPriority,
@@ -99,7 +103,7 @@ const handleFilterChange = (field, value) => {
     updatedAssignee = value;
   }
 
-  if (loginData?.team_id) {
+    if (loginData?.team_id) {
     fetchIssuesWithFilter(loginData.team_id, updatedStatus, updatedPriority, updatedAssignee);
   }
 };
@@ -111,6 +115,7 @@ const fetchIssuesWithFilter = async (teamId, status, priority, assignee, sortFie
       'http://127.0.0.1:8000/api/get-transaction-by-requestor',
       {
         created_by_id: teamId,
+        acceptor_id: teamId,
         search: searchTerm,
         status,
         priority,
@@ -221,6 +226,41 @@ const fetchIssuesWithFilter = async (teamId, status, priority, assignee, sortFie
       setPopupData(null);
       setPopupOpen(true);
     }
+  };
+
+    const handleViewHistory = async (issueid) =>{
+      const token = Cookies.get('token');
+      try {
+        const res = await axios.post(
+          'http://127.0.0.1:8000/api/get-transaction-history',
+          { issueid: issueid },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        setPopupHistory(res.data.data);
+        setPopupHistoryOpen(true);
+      } catch (err) {
+        console.error('Gagal mengambil detail:', err);
+        setPopupHistory(null);
+        setPopupHistoryOpen(true);
+      }
+    }
+  
+    const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).replace(',', '');
   };
 
     const totalPages = Math.ceil(totalItems / pageSize);
@@ -393,16 +433,17 @@ const fetchIssuesWithFilter = async (teamId, status, priority, assignee, sortFie
           <tbody className={styles.tableBody}>
             {Array.isArray(issues) && issues.length > 0 ? (
               issues.map((issue, index) => (
-                <tr key={index}>
-                  <td>{issue.issue_no}</td>
-                  <td>{issue.created_by}</td>
-                  <td>{issue.title}</td>
-                  <td>{issue.requestor}</td>
-                  <td>{issue.acceptor}</td>
-                  <td><span className={`${styles.statusBadge} ${styles.statusOpen}`}>{issue.status}</span></td>
-                  <td><span className={`${styles.priorityBadge} ${styles.priorityHigh}`}>{issue.priority}</span></td>
-                  <td>{issue.created_at}</td>
-                  <td>
+              <tr key={index}>
+                <td>{issue.issue_no}</td>
+                <td>{issue.created_by}</td>
+                <td>{issue.title}</td>
+                <td>{issue.requestor}</td>
+                <td>{issue.acceptor}</td>
+                <td><span className={`${styles.statusBadge} ${styles.statusOpen}`}>{issue.status}</span></td>
+                <td><span className={`${styles.priorityBadge} ${styles.priorityHigh}`}>{issue.priority}</span></td>
+                <td>{issue.created_at}</td>
+                <td>
+                    <button className={styles.actionButton} onClick={() => handleViewHistory(issue.issueid)}>History</button>
                     <button className={styles.actionButton} onClick={() => handleView(issue.created_by_id, issue.issueid, issue.id)}>View</button>
                     <button className={styles.actionButton} onClick={() => router.push(`/quality-assurance/edit-issue?id=${issue.id}&issueid=${issue.issueid}`)}>Edit</button>
                   </td>
@@ -449,6 +490,99 @@ const fetchIssuesWithFilter = async (teamId, status, priority, assignee, sortFie
           </select>
         </div>
       </div>
+     {mounted && (
+  <Transition appear show={popupHistoryOpen} as={Fragment}>
+    <Dialog as="div" className="relative z-50" onClose={() => setPopupHistoryOpen(false)}>
+      <Transition.Child
+        as={Fragment}
+        enter="ease-out duration-300"
+        enterFrom="opacity-0"
+        enterTo="opacity-100"
+        leave="ease-in duration-200"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
+        <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+      </Transition.Child>
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0 scale-95"
+          enterTo="opacity-100 scale-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100 scale-100"
+          leaveTo="opacity-0 scale-95"
+        >
+          <Dialog.Panel className="w-full max-w-4xl rounded-xl bg-white p-6 shadow-xl overflow-y-auto max-h-[80vh]">
+            <div className="mb-6 border-b pb-4 flex justify-between items-center">
+              <Dialog.Title className="text-2xl font-bold text-gray-800">Issue History</Dialog.Title>
+              <button onClick={() => setPopupHistoryOpen(false)} className="text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+{Array.isArray(popupHistory) && popupHistory.length > 0 ? (
+  <div className="space-y-6">
+    {popupHistory.map((item, index) => (
+      <div key={index} className="relative bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+        <div className="absolute -left-3 top-6 w-6 h-6 rounded-full border-4 border-white bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg"></div>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <span className="px-3 py-1 text-sm font-medium rounded-full bg-blue-50 text-blue-700">
+                #{index + 1}
+              </span>
+              <h3 className="text-lg font-bold text-gray-800 tracking-tight">
+                {item.status.toUpperCase()}
+              </h3>
+            </div>
+            <p className="text-sm text-gray-500 font-medium">{formatDate(item.created_at)}</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+              <p className="text-sm font-medium text-gray-500 mb-2">Requestor</p>
+              <p className="text-base font-semibold text-gray-900">{item.requestor || '-'}</p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+              <p className="text-sm font-medium text-gray-500 mb-2">Remarks</p>
+              <p className="text-base font-semibold text-gray-900 line-clamp-2">{item.remarks || '-'}</p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+              <p className="text-sm font-medium text-gray-500 mb-2">Assignee To</p>
+              <p className="text-base font-semibold text-gray-900">{item.acceptor || '-'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+) : (
+  <div className="flex flex-col items-center justify-center py-12 px-4">
+    <div className="w-16 h-16 mb-4 text-gray-400">
+      <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </div>
+    <p className="text-lg font-medium text-gray-500">No history data available</p>
+    <p className="text-sm text-gray-400 mt-1">The history for this issue is empty</p>
+  </div>
+)}
+
+            <div className="mt-8 text-right">
+              <button onClick={() => setPopupHistoryOpen(false)} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg shadow">Close</button>
+            </div>
+          </Dialog.Panel>
+        </Transition.Child>
+      </div>
+    </Dialog>
+  </Transition>
+)}
       {/* Popup can stay as-is or be added back */}
    {mounted && (
         <Transition appear show={popupOpen} as={Fragment}>
@@ -475,65 +609,65 @@ const fetchIssuesWithFilter = async (teamId, status, priority, assignee, sortFie
                 leaveTo="opacity-0 scale-95"
               >
                 <Dialog.Panel className="w-full max-w-2xl rounded-xl bg-white p-0 shadow-xl overflow-hidden">
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-t-lg sticky top-0 z-10">
-                    <div className="flex justify-between items-center">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-t-lg sticky top-0 z-10">
+            <div className="flex justify-between items-center">
                       <Dialog.Title as="h2" className="text-2xl font-bold text-white">Issue Details</Dialog.Title>
-                      <button
-                        onClick={() => setPopupOpen(false)}
-                        className="text-white hover:text-gray-200 transition-colors"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="p-6">
+              <button
+                onClick={() => setPopupOpen(false)}
+                className="text-white hover:text-gray-200 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className="p-6">
                     {Array.isArray(popupData) && popupData.length > 0 ? (
-                      <form className="space-y-8">
-                        <div className="grid grid-cols-2 gap-8 mb-6">
-                          <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-sm">
-                            <label className="block text-sm font-semibold mb-2">Requestor</label>
-                            <input type="text" value={popupData[0].requestor || '-'} disabled className="w-full px-4 py-2.5 rounded-lg border" />
-                          </div>
-                          <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-sm">
-                            <label className="block text-sm font-semibold mb-2">Assigned To</label>
-                            <input type="text" value={popupData[0].acceptor || '-'} disabled className="w-full px-4 py-2.5 rounded-lg border" />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-8 mb-6">
-                          <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-sm">
-                            <label className="block text-sm font-semibold mb-2">Status</label>
-                            <div className={`status-badge ${popupData[0].status?.toLowerCase().replace(/\s+/g, '-')}`}>{popupData[0].status || '-'}</div>
-                          </div>
-                          <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-sm">
-                            <label className="block text-sm font-semibold mb-2">Priority</label>
-                            <div className={`priority-badge ${popupData[0].priority?.toLowerCase().replace(/\s+/g, '-')}`}>{popupData[0].priority || '-'}</div>
-                          </div>
-                        </div>
-                        <div className="mb-6">
-                          <label className="block text-sm font-semibold mb-2">Title</label>
-                          <input type="text" value={popupData[0].title || '-'} disabled className="w-full px-4 py-2.5 rounded-lg border" />
-                        </div>
-                        <div className="mb-6">
-                          <label className="block text-sm font-semibold mb-2">Content</label>
-                          <div className="w-full bg-white border rounded-lg px-4 py-3 min-h-[150px] text-gray-700 prose" dangerouslySetInnerHTML={{ __html: popupData[0].content || '-' }} />
-                        </div>
-                        <div className="mb-6">
-                          <label className="block text-sm font-semibold mb-2">Remarks</label>
-                          <textarea value={popupData[0].remarks || '-'} disabled className="w-full px-4 py-3 rounded-lg border" />
-                        </div>
-                        <div className="flex justify-end">
-                          <button type="button" onClick={() => setPopupOpen(false)} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg">Close</button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div className="text-center py-8 text-red-600 font-medium">Data tidak tersedia.</div>
-                    )}
+              <form className="space-y-8">
+                <div className="grid grid-cols-2 gap-8 mb-6">
+                  <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-semibold mb-2">Requestor</label>
+                    <input type="text" value={popupData[0].requestor || '-'} disabled className="w-full px-4 py-2.5 rounded-lg border" />
                   </div>
+                  <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-semibold mb-2">Assigned To</label>
+                    <input type="text" value={popupData[0].acceptor || '-'} disabled className="w-full px-4 py-2.5 rounded-lg border" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-8 mb-6">
+                  <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-semibold mb-2">Status</label>
+                            <div className={`status-badge ${popupData[0].status?.toLowerCase().replace(/\s+/g, '-')}`}>{popupData[0].status || '-'}</div>
+                  </div>
+                  <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-semibold mb-2">Priority</label>
+                            <div className={`priority-badge ${popupData[0].priority?.toLowerCase().replace(/\s+/g, '-')}`}>{popupData[0].priority || '-'}</div>
+                  </div>
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold mb-2">Title</label>
+                  <input type="text" value={popupData[0].title || '-'} disabled className="w-full px-4 py-2.5 rounded-lg border" />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold mb-2">Content</label>
+                          <div className="w-full bg-white border rounded-lg px-4 py-3 min-h-[150px] text-gray-700 prose" dangerouslySetInnerHTML={{ __html: popupData[0].content || '-' }} />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold mb-2">Remarks</label>
+                  <textarea value={popupData[0].remarks || '-'} disabled className="w-full px-4 py-3 rounded-lg border" />
+                </div>
+                <div className="flex justify-end">
+                          <button type="button" onClick={() => setPopupOpen(false)} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg">Close</button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-8 text-red-600 font-medium">Data tidak tersedia.</div>
+            )}
+          </div>
                 </Dialog.Panel>
               </Transition.Child>
-            </div>
+        </div>
           </Dialog>
         </Transition>
       )}

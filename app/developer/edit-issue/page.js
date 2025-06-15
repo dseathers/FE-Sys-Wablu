@@ -1,5 +1,17 @@
-import React from 'react';
+'use client'
 
-export default function EditIssuePage() {
-  return <div>Edit Issue Page (Developer)</div>;
-} 
+import { Suspense } from 'react'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+import EditIssueFormDeveloper from '../../components/EditIssueFormDeveloper'
+
+export default function Page() {
+  return (
+    <>
+      <Suspense fallback={<div>Loading...</div>}>
+        <EditIssueFormDeveloper />
+      </Suspense>
+      <ToastContainer />
+    </>
+  )
+}
