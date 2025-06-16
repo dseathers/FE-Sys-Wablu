@@ -6,7 +6,6 @@ import Cookies from 'js-cookie';
 import styles from '../../style/listissue.module.css';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -21,48 +20,53 @@ const UserList = () => {
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [roleList, setRoleList] = useState([]);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role_id: '' });
   const [formData, setFormData] = useState({
-  name: '',
-  email: '',
-  password: '',
-  role_id: ''
-});
-
-  const [submitError, setSubmitError] = useState(null);
-
+    name: '',
+    email: '',
+    password: '',
+    role_id: '',
+    file_id: ''
+  });
+  const [fileId, setFileId] = useState('');
+  const [preview, setPreview] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [thumbnails, setThumbnails] = useState({});
 
-    useEffect(() => {
-      setMounted(true);
-    }, []);
+  useEffect(() => setMounted(true), []);
 
   const fetchUserList = async (sortField = '', sortOrder = 'asc', size = pageSize, page = pageNumber) => {
     const token = Cookies.get('token');
     try {
       const res = await axios.post(
         'http://127.0.0.1:8000/api/get-user-list',
-        {
-          search: searchTerm,
-          pageSize: size,
-          pageNumber: page,
-          orderBy: sortOrder,
-          sortBy: sortField,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }
+        { search: searchTerm, pageSize: size, pageNumber: page, orderBy: sortOrder, sortBy: sortField },
+        { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' } }
       );
       setUserList(res.data.data);
       setTotalItems(res.data.total || 0);
+
+      const thumbnailMap = {};
+      await Promise.all(res.data.data.map(async (user) => {
+        if (user.file_id) {
+          try {
+            const thumb = await axios.post('http://127.0.0.1:8000/api/thumbnail', { file_id: user.file_id }, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            thumbnailMap[user.file_id] = thumb.data.base64;
+          } catch {
+            thumbnailMap[user.file_id] = null;
+          }
+        }
+      }));
+      setThumbnails(thumbnailMap);
     } catch (error) {
       console.error('Failed to fetch User List:', error);
     }
   };
+
 
   useEffect(() => {
     axios.get('http://127.0.0.1:8000/api/role-ddl')
@@ -95,26 +99,57 @@ const UserList = () => {
     setPageNumber(0);
   };
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-  };
+ const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const handleSubmit = async () => {
     const token = Cookies.get('token');
+    const formDataUpload = new FormData();
+    formDataUpload.append('photo', file);
+
     try {
-      await axios.post('http://127.0.0.1:8000/api/user-register', form, {
+      const uploadRes = await axios.post('http://127.0.0.1:8000/api/upload', formDataUpload, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
+          'Content-Type': 'multipart/form-data'
+        }
       });
+      const fileId = uploadRes.data.file_id;
+      setFormData(prev => ({ ...prev, file_id: fileId }));
+
+      const thumbRes = await axios.post('http://127.0.0.1:8000/api/thumbnail', { file_id: fileId }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      setPreview(thumbRes.data.base64);
+    } catch (err) {
+      console.error('Upload or thumbnail fetch failed:', err);
+      toast.error('Upload foto gagal');
+    }
+  };
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    const token = Cookies.get('token');
+    try {
+      await axios.post('http://127.0.0.1:8000/api/user-register', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      toast.success('User berhasil ditambahkan!');
       setPopupOpen(false);
       fetchUserList();
+      setFormData({ name: '', email: '', password: '', role_id: '', file_id: '' });
+      setPreview('');
     } catch (err) {
+      toast.error('Gagal menambahkan user');
       console.error(err);
-      setSubmitError('Failed to submit user');
     }
   };
 
@@ -216,7 +251,16 @@ const UserList = () => {
             {Array.isArray(userList) && userList.length > 0 ? (
               userList.map((user, index) => (
                 <tr key={index}>
-                  <td>{user.team_name}</td>
+                  <td className="flex items-center gap-3">
+                    {user.file_id && thumbnails[user.file_id] && (
+                      <img
+                        src={(user.file_id && thumbnails[user.file_id]) || '/default-profile.JPG'}
+                        alt="Foto Profil"
+                        className="w-15 h-15 rounded-full object-cover"
+                      />
+                    )}
+                    {user.team_name}
+                  </td>
                   <td>{user.email}</td>
                   <td>{user.role_name}</td>
                   <td>{formatDate(user.created_date)}</td>
@@ -264,127 +308,45 @@ const UserList = () => {
           </select>
         </div>
       </div>
-{mounted && (
-  <Transition appear show={popupOpen} as={Fragment}>
-    <Dialog as="div" className="relative z-50" onClose={() => setPopupOpen(false)}>
-      <Transition.Child
-        as={Fragment}
-        enter="ease-out duration-300"
-        enterFrom="opacity-0"
-        enterTo="opacity-100"
-        leave="ease-in duration-200"
-        leaveFrom="opacity-100"
-        leaveTo="opacity-0"
-      >
-        <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
-      </Transition.Child>
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0 scale-95"
-          enterTo="opacity-100 scale-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100 scale-100"
-          leaveTo="opacity-0 scale-95"
-        >
-          <Dialog.Panel className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
-            <Dialog.Title className="text-2xl font-bold mb-4 text-blue-700">Tambah User</Dialog.Title>
+      {mounted && (
+        <Transition appear show={popupOpen} as={Fragment}>
+          <Dialog as="div" className="relative z-50" onClose={() => setPopupOpen(false)}>
+            <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+              <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+            </Transition.Child>
+            <div className="fixed inset-0 flex items-center justify-center p-4">
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+                <Dialog.Panel className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+                  <Dialog.Title className="text-2xl font-bold mb-4 text-blue-700">Tambah User</Dialog.Title>
 
-            <form
-              className="space-y-4"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const token = Cookies.get("token");
-                try {
-                await axios.post(
-                    'http://127.0.0.1:8000/api/user-register',
-                    {
-                    name: formData.name,
-                    email: formData.email,
-                    password: formData.password,
-                    role_id: formData.role_id,
-                    },
-                    {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    }
-                );
+                  <form className="space-y-4" onSubmit={handleSubmit}>
+                    <input type="text" placeholder="Nama" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 rounded-lg border" required />
+                    <input type="email" placeholder="Email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 rounded-lg border" required />
+                    <input type="password" placeholder="Password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-2 rounded-lg border" required />
+                    <select value={formData.role_id} onChange={(e) => setFormData({ ...formData, role_id: e.target.value })} className="w-full px-4 py-2 rounded-lg border bg-white" required>
+                      <option value="">Pilih Role</option>
+                      {roleList.map((r) => (
+                        <option key={r.role_id} value={r.role_id}>{r.role_name}</option>
+                      ))}
+                    </select>
 
-                toast.success('User berhasil ditambahkan!');
-                setPopupOpen(false);
-                fetchUserList();
-                setFormData({ name: '', email: '', password: '', role_id: '' });
-                } catch (err) {
-                toast.error('Gagal menambahkan user');
-                console.error('Submit error:', err);
-                }
-              }}
-            >
-              <input
-                type="text"
-                placeholder="Nama"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border"
-                required
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border"
-                required
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border"
-                required
-              />
-              <select
-                value={formData.role_id}
-                onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border bg-white"
-                required
-              >
-                <option value="">Pilih Role</option>
-                {roleList.map((r) => (
-                  <option key={r.role_id} value={r.role_id}>
-                    {r.role_name}
-                  </option>
-                ))}
-              </select>
+                    <div className="flex items-center gap-4">
+                      <input type="file" accept="image/*" onChange={handleFileUpload} className="block w-full" />
+                      {preview && <img src={preview} alt="Preview" className="w-16 h-16 rounded-full object-cover" />}
+                    </div>
 
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setPopupOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Simpan
-                </button>
-              </div>
-            </form>
-          </Dialog.Panel>
-        </Transition.Child>
-      </div>
-    </Dialog>
-  </Transition>
-)}
-
+                    <div className="flex justify-end gap-3 mt-6">
+                      <button type="button" onClick={() => setPopupOpen(false)} className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">Batal</button>
+                      <button type="submit" className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Simpan</button>
+                    </div>
+                  </form>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </Dialog>
+        </Transition>
+      )}
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar theme="colored" />
     </div>
   );
 };

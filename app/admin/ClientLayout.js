@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import axios from 'axios';
-import { ClipboardList, List, LogOut, Plus, Bell, Settings } from 'lucide-react';
+import { ClipboardList, List, LogOut, Plus, Bell, Settings, User } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import { useEffect, useState, Fragment } from 'react';
 
@@ -16,6 +16,7 @@ export default function ClientLayout({ children }) {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loginData, setLoginData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [thumbnail, setThumbnail] = useState(null);
 
   const fetchLoginInfo = async (email) => {
     try {
@@ -40,6 +41,26 @@ export default function ClientLayout({ children }) {
       router.push('/login');
     }
   }, []);
+
+  useEffect(() => {
+  const fetchThumbnail = async () => {
+    const token = Cookies.get('token');
+    if (loginData?.file_id) {
+      try {
+        const res = await axios.post('http://127.0.0.1:8000/api/thumbnail', { file_id: loginData.file_id }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        setThumbnail(res.data.base64);
+      } catch (err) {
+        console.warn('Thumbnail not found, using default');
+      }
+    }
+  };
+  fetchThumbnail();
+}, [loginData]);
 
   const handleLogout = async () => {
     const token = Cookies.get('token');
@@ -69,11 +90,11 @@ export default function ClientLayout({ children }) {
         <div className="flex flex-col items-center space-y-4 relative z-10">
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
-            <img 
-              className="w-28 h-28 rounded-full border-4 border-white shadow-lg hover:scale-105 transition-all duration-300 relative" 
-              src="/profile.jpg" 
-              alt="User" 
-            />
+              <img 
+                className="w-28 h-28 rounded-full border-4 border-white shadow-lg hover:scale-105 transition-all duration-300 relative" 
+                src={thumbnail || "/default-profile.jpg"} 
+                alt="User" 
+              />
             <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
           </div>
           <div className="text-center">
@@ -94,23 +115,13 @@ export default function ClientLayout({ children }) {
             <span className="font-medium">All Task</span>
           </Link>
           <Link href="/admin/user-list" className={`flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/10 ${activeLink === 'user' ? 'bg-white/20 shadow-lg' : ''}`} onClick={() => setActiveLink('user')}>
-            <div className="p-2 bg-purple-500/20 rounded-lg"><List size={20} className="text-purple-400" /></div>
+            <div className="p-2 bg-purple-500/20 rounded-lg"><User size={20} className="text-purple-400" /></div>
             <span className="font-medium">User</span>
           </Link>
         </div>
 
         <div className="w-full px-6 space-y-3 mt-auto relative z-10">
-          <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/10">
-            <div className="p-2 bg-yellow-500/20 rounded-lg relative">
-              <Bell size={20} className="text-yellow-400" />
-              {notifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
-                  {notifications}
-                </span>
-              )}
-            </div>
-            <span className="font-medium">Notifications</span>
-          </button>
+
 
           <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/10">
             <div className="p-2 bg-gray-500/20 rounded-lg"><Settings size={20} className="text-gray-400" /></div>
