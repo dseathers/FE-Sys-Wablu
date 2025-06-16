@@ -13,6 +13,7 @@ export default function ClientLayout({ children }) {
   const [activeLink, setActiveLink] = useState('');
   const [notifications, setNotifications] = useState(3); // Example notification count
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [thumbnail, setThumbnail] = useState(null);
 
   // Cek token dan role
   useEffect(() => {
@@ -22,6 +23,26 @@ export default function ClientLayout({ children }) {
       router.push('/login');
     }
   }, []);
+
+      useEffect(() => {
+    const fetchThumbnail = async () => {
+      const token = Cookies.get('token');
+      if (loginData?.file_id) {
+        try {
+          const res = await axios.post('http://127.0.0.1:8000/api/thumbnail', { file_id: loginData.file_id }, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          setThumbnail(res.data.base64);
+        } catch (err) {
+          console.warn('Thumbnail not found, using default');
+        }
+      }
+    };
+    fetchThumbnail();
+  }, [loginData]);
 
   // Logout
   const handleLogout = async () => {
@@ -54,11 +75,11 @@ export default function ClientLayout({ children }) {
         <div className="flex flex-col items-center space-y-4 relative z-10">
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
-            <img 
-              className="w-28 h-28 rounded-full border-4 border-white shadow-lg hover:scale-105 transition-all duration-300 relative" 
-              src="/profile.jpg" 
-              alt="User" 
-            />
+              <img 
+                className="w-28 h-28 rounded-full border-4 border-white shadow-lg hover:scale-105 transition-all duration-300 relative" 
+                src={thumbnail || "/default-profile.jpg"} 
+                alt="User" 
+              />
             <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
           </div>
           <div className="text-center">
