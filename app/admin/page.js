@@ -11,6 +11,7 @@ export default function AdminDashboard() {
     activeIssues: 0,
     resolvedIssues: 0
   });
+  const [issueStatusStats, setIssueStatusStats] = useState([]);
 
   const fetchLoginInfo = async (email) => {
     try {
@@ -34,8 +35,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!loginData) return;
+    const token = Cookies.get('token');
+
     const fetchStats = async () => {
-      const token = Cookies.get('token');
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/admin-dashboard-stats', {
           headers: {
@@ -49,7 +51,24 @@ export default function AdminDashboard() {
         console.error('Error fetching dashboard stats:', error);
       }
     };
+
+    const fetchIssueStatus = async () => {
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/api/get-dashboard', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          }
+        });
+        setIssueStatusStats(res.data);
+      } catch (err) {
+        console.error('Failed to fetch issue status stats:', err);
+      }
+    };
+
     fetchStats();
+    fetchIssueStatus();
   }, [loginData]);
 
   if (!loginData) {
@@ -60,24 +79,16 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
       <p className="text-gray-600">Welcome, {loginData.team_name}</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
-          <p className="mt-2 text-3xl font-semibold text-gray-900">{stats.totalUsers}</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+          {issueStatusStats.map((item, index) => (
+            <div key={index} className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="text-sm font-medium text-gray-500">{item.status_name}</h3>
+              <p className="mt-2 text-3xl font-semibold text-gray-900">{item.actual_issue_count}</p>
+            </div>
+          ))}
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Total Issues</h3>
-          <p className="mt-2 text-3xl font-semibold text-blue-600">{stats.totalIssues}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Active Issues</h3>
-          <p className="mt-2 text-3xl font-semibold text-yellow-600">{stats.activeIssues}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Resolved Issues</h3>
-          <p className="mt-2 text-3xl font-semibold text-green-600">{stats.resolvedIssues}</p>
-        </div>
-      </div>
+
     </div>
   );
 }

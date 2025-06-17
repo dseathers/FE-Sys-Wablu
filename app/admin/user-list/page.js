@@ -32,9 +32,14 @@ const UserList = () => {
   const [mounted, setMounted] = useState(false);
   const [thumbnails, setThumbnails] = useState({});
 
+  const [popupEdit, setPopupEdit] = useState(null);
+  const [popupEditOpen, setPopupEditOpen] = useState(false);
+
+  const [editUserId, setEditUserId] = useState(null);
+
   useEffect(() => setMounted(true), []);
 
-  const fetchUserList = async (sortField = '', sortOrder = 'asc', size = pageSize, page = pageNumber) => {
+  const fetchUserList = async (sortField = '', sortOrder = 'desc', size = pageSize, page = pageNumber) => {
     const token = Cookies.get('token');
     try {
       const res = await axios.post(
@@ -161,6 +166,71 @@ const handleSubmit = async (e) => {
     }).replace(',', '');
   };
 
+const handleEditPopup = async (teamId) => {
+  const token = Cookies.get('token');
+  try {
+    const res = await axios.post('http://127.0.0.1:8000/api/get-user-dtl', {
+      team_id: teamId
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    const d = res.data.data[0];
+    setEditUserId(teamId);
+    setFormData({
+      name: d.team_name,
+      email: d.email,
+      password: '',
+      role_id: d.role_id, // Mapping role_name ke role_id kalau diperlukan
+      file_id: d.file_id || ''
+    });
+    if (d.file_id) {
+      const thumb = await axios.post('http://127.0.0.1:8000/api/thumbnail', { file_id: d.file_id }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      setPreview(thumb.data.base64);
+    } else {
+      setPreview('');
+    }
+    setPopupEditOpen(true);
+  } catch (err) {
+    toast.error('Gagal mengambil detail user');
+    console.error(err);
+  }
+};
+
+const handleEditSubmit = async (e) => {
+  e.preventDefault();
+  const token = Cookies.get('token');
+  try {
+    await axios.post('http://127.0.0.1:8000/api/update-user-dtl', {
+      team_id: editUserId,
+      role_id: formData.role_id,
+      file_id: formData.file_id
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    toast.success('User berhasil diupdate!');
+    setPopupEditOpen(false);
+    fetchUserList();
+  } catch (err) {
+    toast.error('Gagal mengupdate user');
+    console.error(err);
+  }
+};
+
+  
+
   const totalPages = Math.ceil(totalItems / pageSize);
 
   return (
@@ -245,6 +315,7 @@ const handleSubmit = async (e) => {
                   </span>
                 </button>
               </span></th>
+              <th>ACTION</th>
             </tr>
           </thead>
           <tbody className={styles.tableBody}>
@@ -264,6 +335,9 @@ const handleSubmit = async (e) => {
                   <td>{user.email}</td>
                   <td>{user.role_name}</td>
                   <td>{formatDate(user.created_date)}</td>
+                  <td>
+                      <button className={styles.actionButton} onClick={() => handleEditPopup(user.team_id)}>Edit</button>
+                  </td>
                 </tr>
               ))
             ) : (
@@ -316,28 +390,116 @@ const handleSubmit = async (e) => {
             </Transition.Child>
             <div className="fixed inset-0 flex items-center justify-center p-4">
               <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                <Dialog.Panel className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
-                  <Dialog.Title className="text-2xl font-bold mb-4 text-blue-700">Tambah User</Dialog.Title>
+                <Dialog.Panel className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl transform transition-all">
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                    <Dialog.Title className="text-2xl font-bold text-gray-800">Tambah User</Dialog.Title>
+                    <button 
+                      onClick={() => setPopupOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
 
-                  <form className="space-y-4" onSubmit={handleSubmit}>
-                    <input type="text" placeholder="Nama" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 rounded-lg border" required />
-                    <input type="email" placeholder="Email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 rounded-lg border" required />
-                    <input type="password" placeholder="Password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-2 rounded-lg border" required />
-                    <select value={formData.role_id} onChange={(e) => setFormData({ ...formData, role_id: e.target.value })} className="w-full px-4 py-2 rounded-lg border bg-white" required>
-                      <option value="">Pilih Role</option>
-                      {roleList.map((r) => (
-                        <option key={r.role_id} value={r.role_id}>{r.role_name}</option>
-                      ))}
-                    </select>
+                  <form className="space-y-6" onSubmit={handleSubmit}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Nama</label>
+                        <input 
+                          type="text" 
+                          placeholder="Masukkan nama" 
+                          value={formData.name} 
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 hover:bg-white" 
+                          required 
+                        />
+                      </div>
 
-                    <div className="flex items-center gap-4">
-                      <input type="file" accept="image/*" onChange={handleFileUpload} className="block w-full" />
-                      {preview && <img src={preview} alt="Preview" className="w-16 h-16 rounded-full object-cover" />}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                        <input 
+                          type="email" 
+                          placeholder="Masukkan email" 
+                          value={formData.email} 
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 hover:bg-white" 
+                          required 
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Password</label>
+                        <input 
+                          type="password" 
+                          placeholder="Masukkan password" 
+                          value={formData.password} 
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 hover:bg-white" 
+                          required 
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Role</label>
+                        <select 
+                          value={formData.role_id} 
+                          onChange={(e) => setFormData({ ...formData, role_id: e.target.value })} 
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 hover:bg-white" 
+                          required
+                        >
+                          <option value="">Pilih Role</option>
+                          {roleList.map((r) => (
+                            <option key={r.role_id} value={r.role_id}>{r.role_name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Foto Profil</label>
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={handleFileUpload} 
+                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" 
+                            />
+                          </div>
+                          {preview && (
+                            <div className="relative group">
+                              <img 
+                                src={preview} 
+                                alt="Preview" 
+                                className="w-16 h-16 rounded-full object-cover border-2 border-blue-500 shadow-sm transition-transform group-hover:scale-105" 
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-6">
-                      <button type="button" onClick={() => setPopupOpen(false)} className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">Batal</button>
-                      <button type="submit" className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Simpan</button>
+                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+                      <button 
+                        type="button" 
+                        onClick={() => setPopupOpen(false)} 
+                        className="px-6 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium transition-colors flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Batal
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="px-6 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors shadow-sm hover:shadow flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Simpan
+                      </button>
                     </div>
                   </form>
                 </Dialog.Panel>
@@ -347,6 +509,132 @@ const handleSubmit = async (e) => {
         </Transition>
       )}
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar theme="colored" />
+            {mounted && (
+        <Transition appear show={popupEditOpen} as={Fragment}>
+          <Dialog as="div" className="relative z-50" onClose={() => setPopupEditOpen(false)}>
+            <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+              <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+            </Transition.Child>
+            <div className="fixed inset-0 flex items-center justify-center p-4">
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+                <Dialog.Panel className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl transform transition-all">
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                    <Dialog.Title className="text-2xl font-bold text-gray-800">Edit User</Dialog.Title>
+                    <button 
+                      onClick={() => setPopupEditOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <form className="space-y-6" onSubmit={handleEditSubmit}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Name</label>
+                        <input 
+                          type="text" 
+                          placeholder="Masukkan nama" 
+                          value={formData.name} 
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 hover:bg-white" 
+                          disabled 
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                        <input 
+                          type="email" 
+                          placeholder="Masukkan email" 
+                          value={formData.email} 
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 hover:bg-white" 
+                          disabled
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Password</label>
+                        <input 
+                          type="password" 
+                          placeholder="Masukkan password" 
+                          value="**********"
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 hover:bg-white" 
+                          disabled
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Role</label>
+                        <select 
+                          value={formData.role_id} 
+                          onChange={(e) => setFormData({ ...formData, role_id: e.target.value })} 
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 hover:bg-white" 
+                          required
+                        >
+                          <option value="">Pilih Role</option>
+                          {roleList.map((r) => (
+                            <option key={r.role_id} value={r.role_id}>{r.role_name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Foto Profil</label>
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={handleFileUpload} 
+                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" 
+                            />
+                          </div>
+                          {preview && (
+                            <div className="relative group">
+                              <img 
+                                src={preview} 
+                                alt="Preview" 
+                                className="w-16 h-16 rounded-full object-cover border-2 border-blue-500 shadow-sm transition-transform group-hover:scale-105" 
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+                      <button 
+                        type="button" 
+                        onClick={() => setPopupEditOpen(false)} 
+                        className="px-6 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium transition-colors flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Batal
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="px-6 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors shadow-sm hover:shadow flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Simpan
+                      </button>
+                    </div>
+                  </form>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </Dialog>
+        </Transition>
+      )}
     </div>
   );
 };
