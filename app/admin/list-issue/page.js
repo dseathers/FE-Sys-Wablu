@@ -89,18 +89,40 @@ const ListIssuePage = () => {
     }
   };
 
-  useEffect(() => {
-    if (loginData?.team_id) {
-      fetchIssues(loginData.team_id);
-    }
-  }, [loginData, sortBy, orderBy]);
+useEffect(() => {
+  if (loginData?.team_id) {
+    fetchIssues(
+      loginData.team_id,
+      selectedStatus,
+      selectedPriority,
+      selectedDeveloper,
+      sortBy,
+      orderBy,
+      pageSize,
+      pageNumber
+    );
+  }
+}, [loginData, sortBy, orderBy, selectedStatus, selectedPriority, selectedDeveloper, pageSize, pageNumber]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (loginData?.team_id) fetchIssues(loginData.team_id);
-    }, 400);
-    return () => clearTimeout(timeout);
-  }, [searchTerm]);
+
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    if (loginData?.team_id) {
+      fetchIssues(
+        loginData.team_id,
+        selectedStatus,
+        selectedPriority,
+        selectedDeveloper,
+        sortBy,
+        orderBy,
+        pageSize,
+        pageNumber
+      );
+    }
+  }, 400);
+  return () => clearTimeout(timeout);
+}, [searchTerm]);
+
 
   const handleFilterChange = (field, value) => {
     if (field === 'status') setSelectedStatus(value);
@@ -112,12 +134,25 @@ const ListIssuePage = () => {
     }
   };
 
-  const handleSort = (field) => {
-    const newOrder = sortBy === field && orderBy === 'asc' ? 'desc' : 'asc';
-    setSortBy(field);
-    setOrderBy(newOrder);
-    if (loginData?.team_id) fetchIssues(loginData.team_id, selectedStatus, selectedPriority, selectedDeveloper, field, newOrder);
-  };
+const handleSort = (field) => {
+  const newOrder = sortBy === field && orderBy === 'asc' ? 'desc' : 'asc';
+  setSortBy(field);
+  setOrderBy(newOrder);
+
+  // 🟢 Tambahkan ini
+  if (loginData?.team_id) {
+    fetchIssues(
+      loginData.team_id,
+      selectedStatus,
+      selectedPriority,
+      selectedDeveloper,
+      field,
+      newOrder,
+      pageSize,
+      pageNumber
+    );
+  }
+};
 
   const handlePageChange = (page) => {
     setPageNumber(page);
@@ -401,7 +436,7 @@ const ListIssuePage = () => {
                   <td>
                     <button className={styles.actionButton} onClick={() => handleViewHistory(issue.issueid)}>History</button>
                     <button className={styles.actionButton} onClick={() => handleView(issue.created_by_id, issue.issueid, issue.id)}>View</button>
-                    <button className={styles.actionButton} onClick={() => router.push(`/developer/edit-issue?id=${issue.id}&issueid=${issue.issueid}`)}>Edit</button>
+                    <button className={styles.actionButton} onClick={() => router.push(`/admin/edit-issue?id=${issue.id}&issueid=${issue.issueid}`)}>Edit</button>
                   </td>
                 </tr>
               ))
