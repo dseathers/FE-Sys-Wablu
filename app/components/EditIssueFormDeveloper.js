@@ -56,8 +56,8 @@ const EditIssueFormDeveloper = () => {
         // Set nilai awal form
         setIssueId(d.issueid);
         setIssueNo(d.issue_no);
-        setRequestor(d.requestor_id || '');
-        setSelectedDeveloper(d.acceptor_id || '');
+        setRequestor(d.acceptor_id || '');
+        setSelectedDeveloper(d.requestor_id || '');
         setSelectedStatus(d.status_id || '');
         setSelectedPriority(d.priority_id || '');
         setTitle(d.title || '');
@@ -73,7 +73,7 @@ const EditIssueFormDeveloper = () => {
   }, [id, issueid]);
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/user-dev-ddl')
+    axios.get('http://127.0.0.1:8000/api/user-qa-ddl')
       .then(res => setDeveloperList(res.data))
       .catch(err => console.error('Failed to fetch developers:', err));
 
@@ -138,7 +138,7 @@ const EditIssueFormDeveloper = () => {
             <label className={styles.label}>Team Name</label>
             <input
               type="text"
-              value={data?.requestor || ''}
+              value={data?.acceptor || ''}
               disabled
               className={styles.input}
             />
@@ -150,11 +150,12 @@ const EditIssueFormDeveloper = () => {
               onChange={(e) => setSelectedDeveloper(e.target.value)}
               required
               className={styles.select}
-              disabled
             >
               <option value="">Select Developer</option>
               {developerList.map(dev => (
-                <option key={dev.team_id} value={dev.team_id}>{dev.team_name}</option>
+                <option key={dev.team_id} value={dev.team_id.toString()}>
+                  {dev.name}
+                </option>
               ))}
             </select>
           </div>

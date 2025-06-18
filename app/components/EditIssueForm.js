@@ -28,6 +28,7 @@ const EditIssueForm = () => {
   const [issueId, setIssueId] = useState('');
   const [content, setContent] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [requestor, setRequestor] = useState('');
   const [path, setPath] = useState('');
 
   const [data, setData] = useState(null);
@@ -54,7 +55,7 @@ const EditIssueForm = () => {
         // Set nilai awal form
         setIssueId(d.issueid);
         setIssueNo(d.issue_no);
-        setSelectedDeveloper(d.acceptor_id || '');
+        setSelectedDeveloper(d.requestor_id || '');
         setSelectedStatus(d.status_id || '');
         setSelectedPriority(d.priority_id || '');
         setTitle(d.title || '');
@@ -134,7 +135,7 @@ const EditIssueForm = () => {
             <label className={styles.label}>Team Name</label>
             <input
               type="text"
-              value={data?.requestor || ''}
+              value={loginData?.team_name || ''}
               disabled
               className={styles.input}
             />

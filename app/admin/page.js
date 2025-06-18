@@ -135,9 +135,9 @@ export default function AdminDashboard() {
       </div>
 
       <div className="bg-gradient-to-br from-white to-gray-50 p-8 rounded-xl shadow-lg border border-gray-100">
-        <h3 className="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+        {/* <h3 className="text-2xl font-bold text-gray-800 mb-8 flex items-center">
           <span className="bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Issue Status Distribution</span>
-        </h3>
+        </h3> */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="h-[400px] bg-white/50 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100">
             <Bar
@@ -271,10 +271,10 @@ export default function AdminDashboard() {
               }}
             />
           </div>
-          <div className="h-[400px] bg-white/50 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100">
-            <h3 className="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+          <div className="h-[400px] bg-white/50 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 flex flex-col">
+            {/* <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">
               <span className="bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">User Role Distribution</span>
-            </h3>
+            </h3> */}
             <Pie
               data={{
                 labels: userSummaryStats.map(item => item.role_name),

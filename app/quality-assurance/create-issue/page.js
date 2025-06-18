@@ -186,7 +186,6 @@ const CreateIssue = () => {
             type="text"
             value={path}
             onChange={(e) => setPath(e.target.value)}
-            required
             className={styles.input}
           />
         </div>

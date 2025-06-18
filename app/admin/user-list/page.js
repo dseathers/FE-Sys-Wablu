@@ -8,6 +8,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Pencil } from 'lucide-react';
 
 const UserList = () => {
   const [userList, setUserList] = useState([]);
@@ -336,7 +337,7 @@ const handleEditSubmit = async (e) => {
                   <td>{user.role_name}</td>
                   <td>{formatDate(user.created_date)}</td>
                   <td>
-                      <button className={styles.actionButton} onClick={() => handleEditPopup(user.team_id)}>Edit</button>
+                      <button className={styles.actionButton} onClick={() => handleEditPopup(user.team_id)}><Pencil size={17}/></button>
                   </td>
                 </tr>
               ))
