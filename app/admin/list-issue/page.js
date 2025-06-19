@@ -8,6 +8,10 @@ import dynamic from 'next/dynamic';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useRouter } from 'next/navigation';
+import { History, ExternalLink, Pencil, FileDown } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+
 
 const Popup = dynamic(() => import('reactjs-popup'), { ssr: false });
 
@@ -242,6 +246,8 @@ const handleSort = (field) => {
     }
   };
 
+
+
   const formatDate = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleString('en-GB', {
@@ -256,44 +262,126 @@ const handleSort = (field) => {
 
   const totalPages = Math.ceil(totalItems / pageSize);
 
+  const fetchAllIssuesForExport = async () => {
+  const token = Cookies.get('token');
+  try {
+    const res = await axios.post(
+      'http://127.0.0.1:8000/api/get-transaction-all',
+      {
+        search: searchTerm,
+        status: selectedStatus,
+        priority: selectedPriority,
+        assignee: selectedDeveloper,
+        pageSize: 10000, // ambil semua data
+        pageNumber: 0,
+        orderBy: sortBy ? orderBy : 'desc',
+        sortBy: sortBy || 'created_at',
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return res.data.data || [];
+  } catch (err) {
+    console.error('Export fetch error:', err);
+    return [];
+  }
+};
+
+const exportIssuesToExcel = async () => {
+  const data = await fetchAllIssuesForExport(); // ambil semua data sesuai filter
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Issue List');
+
+  worksheet.columns = [
+    { header: 'Issue No', key: 'issue_no', width: 15 },
+    { header: 'Created By', key: 'created_by', width: 25 },
+    { header: 'Title', key: 'title', width: 30 },
+    { header: 'Requestor', key: 'requestor', width: 25 },
+    { header: 'Assigned To', key: 'acceptor', width: 25 },
+    { header: 'Status', key: 'status', width: 15 },
+    { header: 'Priority', key: 'priority', width: 15 },
+    { header: 'Last Modified', key: 'created_at', width: 25 },
+  ];
+
+  data.forEach((item) => {
+    worksheet.addRow({
+      issue_no: item.issue_no,
+      created_by: item.created_by,
+      title: item.title,
+      requestor: item.requestor,
+      acceptor: item.acceptor,
+      status: item.status,
+      priority: item.priority,
+      created_at: formatDate(item.created_at),
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  saveAs(blob, 'issue-list.xlsx');
+};
+
   return (
     <div className={styles.container}>
-      <div className="flex flex-wrap gap-4 items-center bg-white rounded-xl shadow-md px-8 py-5 mb-6 mt-6 w-full">
-        <input
-          type="text"
-          placeholder="Search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 min-w-[180px] px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white transition"
-        />
-        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
-          value={selectedStatus}
-          onChange={(e) => handleFilterChange('status', e.target.value)}>
-          <option value="">Status</option>
-          {statusList.map(status => (
-            <option key={status.status_id} value={status.status_id}>{status.status_name}</option>
-          ))}
-    
-        </select>
-        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
-          value={selectedPriority}
-          onChange={(e) => handleFilterChange('priority', e.target.value)}>
-          <option value="">Priority</option>
-          {priorityList.map(priority => (
-            <option key={priority.priority_id} value={priority.priority_id}>{priority.priority_name}</option>
-          ))}
-
-        </select>
-        <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
-          value={selectedDeveloper}
-          onChange={(e) => handleFilterChange('assignee', e.target.value)}>
-          <option value="">Assignee</option>
-          {developerList.map(dev => (
-            <option key={dev.team_id} value={dev.team_id}>{dev.team_name}</option>
-          ))}
-        </select>
+      <div className="flex flex-wrap gap-4 items-center justify-between bg-white rounded-xl shadow-md px-8 py-5 mb-6 mt-6 w-full">
+        <div className="flex flex-wrap gap-4 items-center flex-1">
+          <input
+            type="text"
+            placeholder="Search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 min-w-[180px] px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+          />
+          <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
+            value={selectedStatus}
+            onChange={(e) => handleFilterChange('status', e.target.value)}>
+            <option value="">Status</option>
+            {statusList.map(status => (
+              <option key={status.status_id} value={status.status_id}>{status.status_name}</option>
+            ))}
+          </select>
+          <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
+            value={selectedPriority}
+            onChange={(e) => handleFilterChange('priority', e.target.value)}>
+            <option value="">Priority</option>
+            {priorityList.map(priority => (
+              <option key={priority.priority_id} value={priority.priority_id}>{priority.priority_name}</option>
+            ))}
+          </select>
+          <select className="px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:border-blue-600 focus:bg-white min-w-[150px] transition"
+            value={selectedDeveloper}
+            onChange={(e) => handleFilterChange('assignee', e.target.value)}>
+            <option value="">Assignee</option>
+            {developerList.map(dev => (
+              <option key={dev.team_id} value={dev.team_id}>{dev.team_name}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Export Excel Button - Positioned to the right */}
+        <div className="flex items-center">
+          <button
+            onClick={exportIssuesToExcel}
+            className="group relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold rounded-xl shadow-lg hover:from-emerald-600 hover:to-green-700 transform hover:scale-105 transition-all duration-200 hover:shadow-xl border border-emerald-400/20"
+          >
+            <div className="relative">
+              <FileDown size={20} className="group-hover:animate-bounce" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+            </div>
+            <span className="hidden sm:inline">Export Excel</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-green-500/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+          </button>
+        </div>
       </div>
-
+      
       <div className={styles.tableContainer}>
         <table className={styles.table}>
           <thead className={styles.tableHeader}>
@@ -434,9 +522,9 @@ const handleSort = (field) => {
                   <td><span className={`${styles.priorityBadge} ${styles.priorityHigh}`}>{issue.priority}</span></td>
                   <td>{formatDate(issue.created_at)}</td>
                   <td>
-                    <button className={styles.actionButton} onClick={() => handleViewHistory(issue.issueid)}>History</button>
-                    <button className={styles.actionButton} onClick={() => handleView(issue.created_by_id, issue.issueid, issue.id)}>View</button>
-                    <button className={styles.actionButton} onClick={() => router.push(`/admin/edit-issue?id=${issue.id}&issueid=${issue.issueid}`)}>Edit</button>
+                    <button className={styles.actionButton} onClick={() => handleViewHistory(issue.issueid)}><History size={19}/></button>
+                    <button className={styles.actionButton} onClick={() => handleView(issue.created_by_id, issue.issueid, issue.id)}><ExternalLink size={19}/></button>
+                    <button className={styles.actionButton} onClick={() => router.push(`/admin/edit-issue?id=${issue.id}&issueid=${issue.issueid}`)}><Pencil size={19}/></button>
                   </td>
                 </tr>
               ))

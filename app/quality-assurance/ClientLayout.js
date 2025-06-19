@@ -5,15 +5,47 @@ import Cookies from 'js-cookie';
 import { ClipboardList, List, LogOut, Plus, Bell, Settings } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import { useEffect, useState, Fragment } from 'react';
+import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const SIDEBAR_WIDTH = 320; // px, sesuai w-80
+const SIDEBAR_WIDTH = 320;
 
 export default function ClientLayout({ children }) {
   const router = useRouter();
   const [activeLink, setActiveLink] = useState('');
-  const [notifications, setNotifications] = useState(3); // Example notification count
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loginData, setLoginData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [thumbnail, setThumbnail] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    new_password: '',
+    new_password_confirmation: ''
+  });
+  const [passwordErrors, setPasswordErrors] = useState({});
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+    const fetchLoginInfo = async (email) => {
+      try {
+        const res = await axios.post('http://127.0.0.1:8000/api/get-login-info', { email });
+        setLoginData(res.data.data[0]);
+      } catch (err) {
+        console.error('Failed to get login data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+      useEffect(() => {
+        const email = Cookies.get('email');
+        if (email) fetchLoginInfo(email);
+      }, []);
 
   // Cek token dan role
   useEffect(() => {
@@ -24,26 +56,78 @@ export default function ClientLayout({ children }) {
     }
   }, []);
 
-      useEffect(() => {
-    const fetchThumbnail = async () => {
-      const token = Cookies.get('token');
-      if (loginData?.file_id) {
-        try {
-          const res = await axios.post('http://127.0.0.1:8000/api/thumbnail', { file_id: loginData.file_id }, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          setThumbnail(res.data.base64);
-        } catch (err) {
-          console.warn('Thumbnail not found, using default');
-        }
-      }
-    };
-    fetchThumbnail();
-  }, [loginData]);
+ useEffect(() => {
+  if (!loginData?.file_id) return; // ❗ Stop kalau belum ada file_id
 
+  const fetchThumbnail = async () => {
+    const token = Cookies.get('token');
+    try {
+      const res = await axios.post('http://127.0.0.1:8000/api/thumbnail', {
+        file_id: loginData.file_id,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      setThumbnail(res.data.base64);
+    } catch (err) {
+      console.warn('Thumbnail not found, using default');
+    }
+  };
+
+  fetchThumbnail();
+}, [loginData]);
+
+const handleChangePassword = async () => {
+  // Clear previous errors
+  setPasswordErrors({});
+  
+  // Validation
+  const errors = {};
+  
+  if (!passwordForm.current_password) {
+    errors.current_password = 'Current password is required';
+  }
+  
+  if (!passwordForm.new_password) {
+    errors.new_password = 'Current password is required';
+  } else if (passwordForm.new_password.length < 8) {
+    errors.new_password = 'New password must be at least 8 characters';
+  }
+  
+  if (!passwordForm.new_password_confirmation) {
+    errors.new_password_confirmation = 'Password confirmation is required';
+  } else if (passwordForm.new_password !== passwordForm.new_password_confirmation) {
+    errors.new_password_confirmation = 'Password confirmation does not match';
+  }
+  
+  if (Object.keys(errors).length > 0) {
+    setPasswordErrors(errors);
+    return;
+  }
+
+  const token = Cookies.get('token');
+  try {
+    const payload = {
+      id: loginData?.id, // ID dari get-login-info
+      ...passwordForm
+    };
+
+    const res = await axios.post('http://127.0.0.1:8000/api/change-password', payload, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    toast.success('Change Password Success');
+    setShowChangePassword(false);
+    setPasswordForm({ current_password: '', new_password: '', new_password_confirmation: '' });
+    setPasswordErrors({});
+  } catch (err) {
+    toast.error(err?.response?.data?.message || 'Gagal mengubah password');
+  }
+};
   // Logout
   const handleLogout = async () => {
     const token = Cookies.get('token');
@@ -83,7 +167,9 @@ export default function ClientLayout({ children }) {
             <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
           </div>
           <div className="text-center">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">QA Tester</h2>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              {isLoading ? 'Loading...' : loginData?.team_name || 'Team Name'}
+            </h2>
             <p className="text-gray-300 text-sm mt-1">Quality Assurance Team</p>
           </div>
         </div>
@@ -122,7 +208,7 @@ export default function ClientLayout({ children }) {
         </div>
 
         <div className="w-full px-6 space-y-3 mt-auto relative z-10">
-          <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/10 backdrop-blur-sm">
+          {/* <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/10 backdrop-blur-sm">
             <div className="p-2 bg-yellow-500/20 rounded-lg relative">
               <Bell size={20} className="text-yellow-400" />
               {notifications > 0 && (
@@ -132,9 +218,12 @@ export default function ClientLayout({ children }) {
               )}
             </div>
             <span className="font-medium">Notifications</span>
-          </button>
+          </button> */}
           
-          <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/10 backdrop-blur-sm">
+          <button
+            onClick={() => setShowChangePassword(true)}
+            className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/10"
+          >
             <div className="p-2 bg-gray-500/20 rounded-lg">
               <Settings size={20} className="text-gray-400" />
             </div>
@@ -160,7 +249,171 @@ export default function ClientLayout({ children }) {
           {children}
         </div>
       </main>
+      {mounted && (
+  <Transition appear show={showChangePassword} as={Fragment}>
+    <Dialog as="div" className="relative z-50" onClose={() => setShowChangePassword(false)}>
+      <Transition.Child
+        as={Fragment}
+        enter="ease-out duration-300"
+        enterFrom="opacity-0"
+        enterTo="opacity-100"
+        leave="ease-in duration-200"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+      </Transition.Child>
 
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0 scale-95"
+          enterTo="opacity-100 scale-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100 scale-100"
+          leaveTo="opacity-0 scale-95"
+        >
+          <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-3xl bg-gradient-to-br from-white via-gray-50 to-white p-0 shadow-2xl border border-gray-200">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6 text-white">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <Settings size={24} className="text-white" />
+                </div>
+                <div>
+                  <Dialog.Title className="text-2xl font-bold">Change Password</Dialog.Title>
+                  <p className="text-blue-100 text-sm mt-1">Change Your Acount Password</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="px-8 py-6 space-y-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      passwordErrors.current_password 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    placeholder="Insert Current Password"
+                    value={passwordForm.current_password}
+                    onChange={(e) => {
+                      setPasswordForm({ ...passwordForm, current_password: e.target.value });
+                      if (passwordErrors.current_password) {
+                        setPasswordErrors({ ...passwordErrors, current_password: '' });
+                      }
+                    }}
+                  />
+                  {passwordErrors.current_password && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <span className="w-1 h-1 bg-red-500 rounded-full mr-2"></span>
+                      {passwordErrors.current_password}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      passwordErrors.new_password 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    placeholder="Insert New Password"
+                    value={passwordForm.new_password}
+                    onChange={(e) => {
+                      setPasswordForm({ ...passwordForm, new_password: e.target.value });
+                      if (passwordErrors.new_password) {
+                        setPasswordErrors({ ...passwordErrors, new_password: '' });
+                      }
+                    }}
+                  />
+                  {passwordErrors.new_password && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <span className="w-1 h-1 bg-red-500 rounded-full mr-2"></span>
+                      {passwordErrors.new_password}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      passwordErrors.new_password_confirmation 
+                        ? 'border-red-300 bg-red-50' 
+                        : passwordForm.new_password_confirmation && passwordForm.new_password === passwordForm.new_password_confirmation
+                        ? 'border-green-300 bg-green-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    placeholder="Confirm New Password"
+                    value={passwordForm.new_password_confirmation}
+                    onChange={(e) => {
+                      setPasswordForm({ ...passwordForm, new_password_confirmation: e.target.value });
+                      if (passwordErrors.new_password_confirmation) {
+                        setPasswordErrors({ ...passwordErrors, new_password_confirmation: '' });
+                      }
+                    }}
+                  />
+                  {passwordErrors.new_password_confirmation && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <span className="w-1 h-1 bg-red-500 rounded-full mr-2"></span>
+                      {passwordErrors.new_password_confirmation}
+                    </p>
+                  )}
+                  {passwordForm.new_password_confirmation && passwordForm.new_password === passwordForm.new_password_confirmation && (
+                    <p className="text-green-600 text-sm mt-1 flex items-center">
+                      <span className="w-1 h-1 bg-green-500 rounded-full mr-2"></span>
+                      Password Match
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-8 py-6 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowChangePassword(false);
+                  setPasswordForm({ current_password: '', new_password: '', new_password_confirmation: '' });
+                  setPasswordErrors({});
+                }}
+                className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                Save
+              </button>
+            </div>
+          </Dialog.Panel>
+        </Transition.Child>
+      </div>
+    </Dialog>
+  </Transition>
+)}
       <Transition appear show={logoutOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={() => setLogoutOpen(false)}>
           <Transition.Child
@@ -212,6 +465,7 @@ export default function ClientLayout({ children }) {
           </div>
         </Dialog>
       </Transition>
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 } 

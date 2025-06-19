@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -19,24 +19,31 @@ import {
 } from 'lucide-react'
 
 export default function TiptapEditor({ content, onChange }) {
+  const hasLoaded = useRef(false)
+
   const editor = useEditor({
     extensions: [
       StarterKit,
       Underline,
       Link.configure({ openOnClick: false }),
-      Image,
+      Image.configure({
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'mx-auto max-w-full h-auto rounded-md',
+        },
+      }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
-    content,
+    content: '',
     onUpdate({ editor }) {
       onChange(editor.getHTML())
     },
   })
 
-  // ⛳️ Hook tidak boleh dipanggil setelah return!
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (editor && content && !hasLoaded.current) {
       editor.commands.setContent(content, false)
+      hasLoaded.current = true
     }
   }, [editor, content])
 
@@ -47,7 +54,7 @@ export default function TiptapEditor({ content, onChange }) {
       onClick={onClick}
       title={title}
       type="button"
-      className={`p-2 rounded-md border ${isActive ? 'bg-blue-500 text-white' : 'bg-white text-black'}`}
+      className={`p-2 rounded-md border ${isActive ? 'bg-blue-500 text-white' : 'bg-white text-black'} hover:bg-gray-100`}
     >
       <Icon size={18} />
     </button>
@@ -73,7 +80,9 @@ export default function TiptapEditor({ content, onChange }) {
               const reader = new FileReader()
               reader.onload = () => {
                 const base64 = reader.result
-                editor.chain().focus().setImage({ src: base64 }).run()
+                if (base64) {
+                  editor.chain().focus().setImage({ src: base64 }).run()
+                }
               }
               reader.readAsDataURL(file)
             }
@@ -86,7 +95,7 @@ export default function TiptapEditor({ content, onChange }) {
       </div>
 
       <div className="border rounded-md p-4 shadow-sm min-h-[200px] bg-white">
-        <EditorContent editor={editor} className="m-4" />
+        <EditorContent editor={editor} className="prose max-w-full" />
       </div>
     </div>
   )
