@@ -52,7 +52,6 @@ const EditIssueForm = () => {
         const d = res.data.data[0];
         setData(d);
 
-        // Set nilai awal form
         setIssueId(d.issueid);
         setIssueNo(d.issue_no);
         setSelectedDeveloper(d.requestor_id || '');

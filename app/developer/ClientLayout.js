@@ -15,7 +15,6 @@ const SIDEBAR_WIDTH = 320;
 export default function ClientLayout({ children }) {
   const router = useRouter();
   const [activeLink, setActiveLink] = useState('');
-  const [notifications, setNotifications] = useState(3);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loginData, setLoginData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);

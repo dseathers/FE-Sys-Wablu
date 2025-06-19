@@ -9,12 +9,11 @@ import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const SIDEBAR_WIDTH = 320; // px, sesuai w-80
+const SIDEBAR_WIDTH = 320;
 
 export default function ClientLayout({ children }) {
   const router = useRouter();
   const [activeLink, setActiveLink] = useState('');
-  const [notifications, setNotifications] = useState(3); // Example notification count
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loginData, setLoginData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);

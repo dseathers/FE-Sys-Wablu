@@ -34,13 +34,12 @@ export default function TiptapEditor({ content, onChange }) {
       }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
-    content: '', // akan di-set di useEffect
+    content: '',
     onUpdate({ editor }) {
       onChange(editor.getHTML())
     },
   })
 
-  // Set konten hanya sekali saat awal render
   useEffect(() => {
     if (editor && content && !hasLoaded.current) {
       editor.commands.setContent(content, false)

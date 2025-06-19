@@ -6,8 +6,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import styles from '../style/login.module.css';
-import { ToastContainer, toast } from 'react-toastify';  // Import react-toastify
-import 'react-toastify/dist/ReactToastify.css';  // Import CSS untuk toastify
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Login = () => {
   const [email, setEmail] = useState('');
